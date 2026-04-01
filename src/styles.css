@@ -115,12 +115,10 @@ body {
   box-shadow: 0 10px 22px rgba(37, 99, 235, 0.14);
 }
 
-.product-card h3 {
-  margin: 0 0 12px;
-  font-size: 22px;
-  line-height: 1.2;
-  font-weight: 800;
-  color: #0f172a;
+.product-card .category {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 600;
 }
 
 .product-card .category {
