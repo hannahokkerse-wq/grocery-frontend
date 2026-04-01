@@ -84,7 +84,7 @@ body {
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 18px;
   margin-bottom: 24px;
 }
@@ -97,7 +97,7 @@ body {
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-height: 140px;
+  min-height: 280px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -132,8 +132,6 @@ body {
 
 .product-card span {
   display: inline-block;
-  font-size: 18px;
-  font-weight: 800;
   color: #111827;
 }
 
@@ -307,6 +305,86 @@ body {
 .chat-input-row input:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+/* V2 extra styles */
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tag-badge {
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+  text-transform: capitalize;
+}
+
+.price-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.store-price-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: #334155;
+  padding: 6px 0;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.store-price-line:last-child {
+  border-bottom: none;
+}
+
+.cheapest-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.cheapest-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cheapest-price {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.selected-products-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.selected-product-pill {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 @media (max-width: 1100px) {
