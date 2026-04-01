@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import "./style.css";
+
+import { useEffect, useMemo, useState } from "react";
 
 const API_BASE = "https://grocery-discount-api.onrender.com";
 
