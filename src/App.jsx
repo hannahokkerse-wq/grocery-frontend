@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
-const API_BASE = "https://grocery-discount-api.onrender.com";
+// 👇 BELANGRIJK: dit is jouw werkende Vercel backend
+const API_BASE = "https://grocery-backend-fawn.vercel.app";
 
 export default function App() {
   const [products, setProducts] = useState([]);
@@ -16,15 +17,32 @@ export default function App() {
         "Hi — I’m your Grocery Discount AI assistant. Ask me how to save money on your basket.",
     },
   ]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingBasket, setLoadingBasket] = useState(false);
   const [loadingAI, setLoadingAI] = useState(false);
   const [loadingChat, setLoadingChat] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`${API_BASE}/products`)
-      .then((res) => res.json())
-      .then((data) => setProducts(data.products || []))
-      .catch((err) => console.error("Failed to load products", err));
+    const loadProducts = async () => {
+      try {
+        setLoadingProducts(true);
+        setError("");
+
+        const res = await fetch(`${API_BASE}/products`);
+        if (!res.ok) throw new Error("Failed to fetch products");
+
+        const data = await res.json();
+        setProducts(data.products || []);
+      } catch (err) {
+        console.error("Failed to load products", err);
+        setError("Could not load products from backend.");
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+
+    loadProducts();
   }, []);
 
   const selectedProducts = useMemo(() => {
@@ -38,8 +56,11 @@ export default function App() {
   };
 
   const optimizeBasket = async () => {
+    if (!selectedIds.length) return;
+
     setLoadingBasket(true);
     setBasketResult(null);
+    setError("");
 
     try {
       const res = await fetch(`${API_BASE}/basket/optimize`, {
@@ -53,18 +74,24 @@ export default function App() {
         }),
       });
 
+      if (!res.ok) throw new Error("Basket optimize failed");
+
       const data = await res.json();
       setBasketResult(data);
     } catch (err) {
       console.error("Basket optimize failed", err);
+      setError("Basket optimization failed.");
     } finally {
       setLoadingBasket(false);
     }
   };
 
   const getAIRecommendations = async () => {
+    if (!selectedIds.length) return;
+
     setLoadingAI(true);
     setAiResult(null);
+    setError("");
 
     try {
       const res = await fetch(`${API_BASE}/ai/recommend`, {
@@ -79,10 +106,13 @@ export default function App() {
         }),
       });
 
+      if (!res.ok) throw new Error("AI recommendations failed");
+
       const data = await res.json();
       setAiResult(data);
     } catch (err) {
       console.error("AI recommendations failed", err);
+      setError("AI savings recommendations failed.");
     } finally {
       setLoadingAI(false);
     }
@@ -94,6 +124,7 @@ export default function App() {
     const newUserMessage = { role: "user", content: chatInput };
     setChatMessages((prev) => [...prev, newUserMessage]);
     setLoadingChat(true);
+    setError("");
 
     try {
       const res = await fetch(`${API_BASE}/ai/chat`, {
@@ -107,6 +138,8 @@ export default function App() {
           product_ids: selectedIds,
         }),
       });
+
+      if (!res.ok) throw new Error("Chat failed");
 
       const data = await res.json();
 
@@ -127,6 +160,7 @@ export default function App() {
           content: "Sorry, something went wrong while contacting the AI.",
         },
       ]);
+      setError("Chat request failed.");
     } finally {
       setLoadingChat(false);
       setChatInput("");
@@ -143,33 +177,47 @@ export default function App() {
         </p>
       </header>
 
+      {error && (
+        <div className="card" style={{ border: "1px solid #ffb3b3", color: "#b00020" }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
       <div className="layout">
         <section className="card">
           <h2>Select Grocery Items</h2>
-          <div className="product-grid">
-            {products.map((product) => {
-              const cheapest = Math.min(...Object.values(product.prices || {}));
-              return (
-                <button
-                  key={product.id}
-                  className={`product-card ${
-                    selectedIds.includes(product.id) ? "selected" : ""
-                  }`}
-                  onClick={() => toggleProduct(product.id)}
-                >
-                  <h3>{product.name}</h3>
-                  <p>{product.category}</p>
-                  <span>From €{cheapest.toFixed(2)}</span>
-                </button>
-              );
-            })}
-          </div>
+
+          {loadingProducts ? (
+            <p>Loading products...</p>
+          ) : (
+            <div className="product-grid">
+              {products.map((product) => {
+                const cheapest = Math.min(...Object.values(product.prices || {}));
+                return (
+                  <button
+                    key={product.id}
+                    className={`product-card ${
+                      selectedIds.includes(product.id) ? "selected" : ""
+                    }`}
+                    onClick={() => toggleProduct(product.id)}
+                  >
+                    <h3>{product.name}</h3>
+                    <p>{product.category}</p>
+                    <span>From €{cheapest.toFixed(2)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <div className="actions">
-            <button onClick={optimizeBasket} disabled={!selectedIds.length}>
+            <button onClick={optimizeBasket} disabled={!selectedIds.length || loadingProducts}>
               {loadingBasket ? "Optimizing..." : "Optimize Basket"}
             </button>
-            <button onClick={getAIRecommendations} disabled={!selectedIds.length}>
+            <button
+              onClick={getAIRecommendations}
+              disabled={!selectedIds.length || loadingProducts}
+            >
               {loadingAI ? "Thinking..." : "Get AI Savings Tips"}
             </button>
           </div>
@@ -202,7 +250,8 @@ export default function App() {
               <h3>Basket Optimization</h3>
               <p>
                 <strong>Best single store:</strong>{" "}
-                {basketResult.basket.singleStoreBest.name} (€{basketResult.basket.singleStoreBest.total})
+                {basketResult.basket.singleStoreBest?.name} (€
+                {basketResult.basket.singleStoreBest?.total})
               </p>
               <p>
                 <strong>Split total:</strong> €{basketResult.basket.splitTotal}
