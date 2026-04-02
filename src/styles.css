@@ -85,6 +85,7 @@ body {
   font-size: 16px;
   background: #f8fafc;
   outline: none;
+  color: #0f172a;
 }
 
 .search-row input:focus,
@@ -142,11 +143,15 @@ button:disabled {
   border-radius: 22px;
   padding: 18px;
   text-align: left;
-  color: #0f172a;
+  color: #0f172a !important;
   min-height: 250px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.product-card * {
+  color: #0f172a !important;
 }
 
 .product-card.selected {
@@ -164,7 +169,7 @@ button:disabled {
 
 .category-badge {
   background: #e0f2fe;
-  color: #0369a1;
+  color: #0369a1 !important;
   padding: 6px 12px;
   border-radius: 999px;
   font-size: 13px;
@@ -173,30 +178,31 @@ button:disabled {
 
 .tag-badge {
   background: #dcfce7;
-  color: #15803d;
+  color: #15803d !important;
   padding: 6px 12px;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 700;
 }
 
-.product-card h3 {
+.product-name {
   margin: 4px 0 0;
   font-size: 24px;
   line-height: 1.25;
-  color: #0f172a;
+  color: #0f172a !important;
+  font-weight: 800;
 }
 
 .substitute {
   margin: 0;
-  color: #64748b;
+  color: #64748b !important;
   font-size: 14px;
 }
 
 .price-line {
   margin-top: 4px;
   font-size: 20px;
-  color: #111827;
+  color: #111827 !important;
 }
 
 .store-prices {
@@ -212,7 +218,7 @@ button:disabled {
   display: flex;
   justify-content: space-between;
   font-size: 14px;
-  color: #334155;
+  color: #334155 !important;
   font-weight: 600;
 }
 
@@ -303,15 +309,6 @@ button:disabled {
   margin: 0;
 }
 
-.budget-result {
-  margin-top: 18px;
-  padding: 14px 16px;
-  background: #ecfeff;
-  border-radius: 14px;
-  color: #0f172a;
-  font-size: 16px;
-}
-
 .chat-card {
   max-width: 1500px;
   margin: 0 auto;
@@ -367,7 +364,7 @@ button:disabled {
     font-size: 28px;
   }
 
-  .product-card h3 {
+  .product-name {
     font-size: 20px;
   }
 
