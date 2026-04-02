@@ -20,9 +20,16 @@ export default function App() {
     {
       role: "assistant",
       content:
-        "Hoi — ik ben je Grocery Discount AI. Zoek producten, vergelijk winkels en vraag hoe je goedkoper boodschappen kunt doen.",
+        "Hoi — ik ben je Grocery Discount AI. Zoek producten, vergelijk winkels en ontdek waar je goedkoper uit bent.",
     },
   ]);
+
+  const storeNameMap = {
+    ah: "Albert Heijn",
+    jumbo: "Jumbo",
+    lidl: "Lidl",
+    aldi: "Aldi",
+  };
 
   useEffect(() => {
     loadProducts();
@@ -157,20 +164,13 @@ export default function App() {
     }
   };
 
-  const storeNameMap = {
-    ah: "Albert Heijn",
-    jumbo: "Jumbo",
-    lidl: "Lidl",
-    aldi: "Aldi",
-  };
-
   return (
     <div className="app">
       <header className="hero">
         <h1>🛒 Grocery Discount AI</h1>
         <p>
-          Vergelijk supermarktprijzen in Nederland, optimaliseer je mandje en
-          ontdek waar je het goedkoopst uit bent.
+          Vergelijk supermarktprijzen in Nederland, zoek producten en ontdek
+          waar je het goedkoopst boodschappen doet.
         </p>
       </header>
 
@@ -178,7 +178,7 @@ export default function App() {
         <section className="card left-panel">
           <div className="section-header">
             <h2>Zoek producten</h2>
-            <p>Zoek op naam, categorie of soort product.</p>
+            <p>Zoek op naam, categorie of type product.</p>
           </div>
 
           <div className="search-row">
@@ -186,13 +186,16 @@ export default function App() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Bijv. melk, brood, kip, fruit..."
+              placeholder="Zoek bijv. melk, brood, kip, cola..."
             />
             <button onClick={() => loadProducts(searchQuery)}>Zoeken</button>
-            <button className="secondary-btn" onClick={() => {
-              setSearchQuery("");
-              loadProducts("");
-            }}>
+            <button
+              className="secondary-btn"
+              onClick={() => {
+                setSearchQuery("");
+                loadProducts("");
+              }}
+            >
               Reset
             </button>
           </div>
@@ -223,7 +226,7 @@ export default function App() {
                     )}
                   </div>
 
-                  <h3>{product.name}</h3>
+                  <h3 className="product-name">{product.name}</h3>
 
                   <p className="substitute">
                     Alternatief: {product.substitute}
@@ -321,23 +324,11 @@ export default function App() {
           {aiResult && (
             <div className="result-box">
               <h3>AI bespaaradvies</h3>
-
               <ul>
                 {aiResult.insights?.map((tip, idx) => (
                   <li key={idx}>{tip}</li>
                 ))}
               </ul>
-
-              {aiResult.budgetStatus && (
-                <div className="budget-result">
-                  <strong>Budgetcheck:</strong>{" "}
-                  {aiResult.budgetStatus.withinBudget
-                    ? `Je zit €${aiResult.budgetStatus.difference} onder budget`
-                    : `Je zit €${Math.abs(
-                        aiResult.budgetStatus.difference
-                      )} boven budget`}
-                </div>
-              )}
             </div>
           )}
         </section>
@@ -353,7 +344,6 @@ export default function App() {
               {msg.content}
             </div>
           ))}
-
           {loadingChat && (
             <div className="chat-message assistant">AI is aan het typen...</div>
           )}
