@@ -1,66 +1,49 @@
 import { useEffect, useMemo, useState } from "react";
+import "./style.css";
 
 const API_BASE = "https://grocery-discount-api.onrender.com";
 
 export default function App() {
   const [products, setProducts] = useState([]);
-  const [stores, setStores] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [basketResult, setBasketResult] = useState(null);
   const [aiResult, setAiResult] = useState(null);
   const [budget, setBudget] = useState("");
   const [chatInput, setChatInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [selectedStore, setSelectedStore] = useState("all");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [loadingBasket, setLoadingBasket] = useState(false);
+  const [loadingAI, setLoadingAI] = useState(false);
+  const [loadingChat, setLoadingChat] = useState(false);
 
   const [chatMessages, setChatMessages] = useState([
     {
       role: "assistant",
       content:
-        "Hoi — ik ben je Grocery Discount AI. Vraag me hoe je slimmer en goedkoper boodschappen kunt doen.",
+        "Hoi — ik ben je Grocery Discount AI. Zoek producten, vergelijk winkels en vraag hoe je goedkoper boodschappen kunt doen.",
     },
   ]);
 
-  const [loadingBasket, setLoadingBasket] = useState(false);
-  const [loadingAI, setLoadingAI] = useState(false);
-  const [loadingChat, setLoadingChat] = useState(false);
-
   useEffect(() => {
-    fetch(`${API_BASE}/products`)
-      .then((res) => res.json())
-      .then((data) => setProducts(data.products || []))
-      .catch((err) => console.error("Failed to load products", err));
-
-    fetch(`${API_BASE}/stores`)
-      .then((res) => res.json())
-      .then((data) => setStores(data.stores || []))
-      .catch((err) => console.error("Failed to load stores", err));
+    loadProducts();
   }, []);
 
-  const categories = useMemo(() => {
-    const unique = [...new Set(products.map((p) => p.category))];
-    return unique.sort();
-  }, [products]);
+  const loadProducts = async (query = "") => {
+    setLoadingProducts(true);
+    try {
+      const url = query.trim()
+        ? `${API_BASE}/products?q=${encodeURIComponent(query)}`
+        : `${API_BASE}/products`;
 
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      const matchesSearch =
-        product.name.toLowerCase().includes(search.toLowerCase()) ||
-        product.category.toLowerCase().includes(search.toLowerCase()) ||
-        (product.tags || []).some((tag) =>
-          tag.toLowerCase().includes(search.toLowerCase())
-        );
-
-      const matchesCategory =
-        selectedCategory === "all" || product.category === selectedCategory;
-
-      const matchesStore =
-        selectedStore === "all" || product.prices?.[selectedStore] !== undefined;
-
-      return matchesSearch && matchesCategory && matchesStore;
-    });
-  }, [products, search, selectedCategory, selectedStore]);
+      const res = await fetch(url);
+      const data = await res.json();
+      setProducts(data.products || []);
+    } catch (err) {
+      console.error("Failed to load products", err);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
 
   const selectedProducts = useMemo(() => {
     return products.filter((p) => selectedIds.includes(p.id));
@@ -72,21 +55,9 @@ export default function App() {
     );
   };
 
-  const getCheapestInfo = (product) => {
-    const entries = Object.entries(product.prices || {});
-    if (!entries.length) return null;
-
-    const cheapest = entries.reduce((min, curr) =>
-      curr[1] < min[1] ? curr : min
-    );
-
-    return {
-      storeId: cheapest[0],
-      price: cheapest[1],
-    };
-  };
-
   const optimizeBasket = async () => {
+    if (!selectedIds.length) return;
+
     setLoadingBasket(true);
     setBasketResult(null);
 
@@ -98,7 +69,7 @@ export default function App() {
         },
         body: JSON.stringify({
           product_ids: selectedIds,
-          location: "Amsterdam",
+          location: "Nederland",
         }),
       });
 
@@ -112,6 +83,8 @@ export default function App() {
   };
 
   const getAIRecommendations = async () => {
+    if (!selectedIds.length) return;
+
     setLoadingAI(true);
     setAiResult(null);
 
@@ -124,7 +97,7 @@ export default function App() {
         body: JSON.stringify({
           product_ids: selectedIds,
           budget: budget ? Number(budget) : null,
-          location: "Amsterdam",
+          location: "Nederland",
         }),
       });
 
@@ -140,9 +113,12 @@ export default function App() {
   const sendChat = async () => {
     if (!chatInput.trim()) return;
 
-    const newUserMessage = { role: "user", content: chatInput };
+    const messageToSend = chatInput;
+
+    const newUserMessage = { role: "user", content: messageToSend };
     setChatMessages((prev) => [...prev, newUserMessage]);
     setLoadingChat(true);
+    setChatInput("");
 
     try {
       const res = await fetch(`${API_BASE}/ai/chat`, {
@@ -152,7 +128,7 @@ export default function App() {
         },
         body: JSON.stringify({
           session_id: "demo-session",
-          message: chatInput,
+          message: messageToSend,
           product_ids: selectedIds,
         }),
       });
@@ -161,7 +137,7 @@ export default function App() {
 
       const reply =
         data.reply ||
-        (data.fallback ? data.fallback.join(" ") : "Geen reactie van AI.");
+        (data.fallback ? data.fallback.join(" ") : "Geen antwoord van AI.");
 
       setChatMessages((prev) => [
         ...prev,
@@ -173,13 +149,19 @@ export default function App() {
         ...prev,
         {
           role: "assistant",
-          content: "Sorry, er ging iets mis bij de AI chat.",
+          content: "Sorry, er ging iets mis bij het ophalen van AI-advies.",
         },
       ]);
     } finally {
       setLoadingChat(false);
-      setChatInput("");
     }
+  };
+
+  const storeNameMap = {
+    ah: "Albert Heijn",
+    jumbo: "Jumbo",
+    lidl: "Lidl",
+    aldi: "Aldi",
   };
 
   return (
@@ -188,144 +170,93 @@ export default function App() {
         <h1>🛒 Grocery Discount AI</h1>
         <p>
           Vergelijk supermarktprijzen in Nederland, optimaliseer je mandje en
-          krijg slimme bespaartips.
+          ontdek waar je het goedkoopst uit bent.
         </p>
       </header>
 
-      <section className="filters card">
-        <div className="filters-grid">
-          <div className="filter-box">
-            <label>Zoek product</label>
+      <div className="layout">
+        <section className="card left-panel">
+          <div className="section-header">
+            <h2>Zoek producten</h2>
+            <p>Zoek op naam, categorie of soort product.</p>
+          </div>
+
+          <div className="search-row">
             <input
               type="text"
-              placeholder="Bijv. melk, brood, pasta..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Bijv. melk, brood, kip, fruit..."
             />
+            <button onClick={() => loadProducts(searchQuery)}>Zoeken</button>
+            <button className="secondary-btn" onClick={() => {
+              setSearchQuery("");
+              loadProducts("");
+            }}>
+              Reset
+            </button>
           </div>
 
-          <div className="filter-box">
-            <label>Filter supermarkt</label>
-            <select
-              value={selectedStore}
-              onChange={(e) => setSelectedStore(e.target.value)}
-            >
-              <option value="all">Alle winkels</option>
-              {stores.map((store) => (
-                <option key={store.id} value={store.id}>
-                  {store.name}
-                </option>
-              ))}
-            </select>
+          <div className="results-info">
+            {loadingProducts ? (
+              <span>Producten laden...</span>
+            ) : (
+              <span>{products.length} producten gevonden</span>
+            )}
           </div>
 
-          <div className="filter-box">
-            <label>Filter categorie</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              <option value="all">Alle categorieën</option>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </section>
-
-      <div className="layout">
-        <section className="card">
-          <div className="section-header">
-            <h2>Supermarkt Producten</h2>
-            <span>{filteredProducts.length} producten</span>
-          </div>
-
-          <div className="product-list">
-            {filteredProducts.map((product) => {
-              const cheapest = getCheapestInfo(product);
-              const isSelected = selectedIds.includes(product.id);
+          <div className="product-grid">
+            {products.map((product) => {
+              const cheapest = Math.min(...Object.values(product.prices || {}));
+              const selected = selectedIds.includes(product.id);
 
               return (
-                <div
+                <button
                   key={product.id}
-                  className={`product-row ${isSelected ? "selected" : ""}`}
+                  className={`product-card ${selected ? "selected" : ""}`}
                   onClick={() => toggleProduct(product.id)}
                 >
-                  <div className="product-main">
-                    <div className="product-top">
-                      <h3>{product.name}</h3>
-                      {product.tags?.[0] && (
-                        <span className="tag-badge">{product.tags[0]}</span>
-                      )}
-                    </div>
-
-                    <p className="product-category">{product.category}</p>
-
-                    <p className="substitute">
-                      Slim alternatief: {product.substitute}
-                    </p>
-
-                    <div className="price-grid">
-                      {stores.map((store) => (
-                        <div key={store.id} className="price-pill">
-                          <span>{store.name}</span>
-                          <strong>
-                            €
-                            {product.prices?.[store.id] !== undefined
-                              ? product.prices[store.id].toFixed(2)
-                              : "-"}
-                          </strong>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="product-top">
+                    <span className="category-badge">{product.category}</span>
+                    {product.tags?.[0] && (
+                      <span className="tag-badge">{product.tags[0]}</span>
+                    )}
                   </div>
 
-                  <div className="product-side">
-                    <div className="cheapest-box">
-                      <small>Goedkoopst</small>
-                      <strong>
-                        {stores.find((s) => s.id === cheapest?.storeId)?.name ||
-                          "-"}
-                      </strong>
-                      <span>€{cheapest?.price?.toFixed(2) || "-"}</span>
-                    </div>
+                  <h3>{product.name}</h3>
+
+                  <p className="substitute">
+                    Alternatief: {product.substitute}
+                  </p>
+
+                  <div className="price-line">
+                    <strong>Vanaf €{cheapest.toFixed(2)}</strong>
                   </div>
-                </div>
+
+                  <div className="store-prices">
+                    {Object.entries(product.prices || {}).map(([store, price]) => (
+                      <div key={store} className="store-price-item">
+                        <span>{storeNameMap[store] || store}</span>
+                        <span>€{price.toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </button>
               );
             })}
           </div>
-        </section>
-
-        <section className="card sidebar">
-          <h2>Geselecteerde Boodschappen</h2>
-
-          {selectedProducts.length === 0 ? (
-            <p className="empty-state">Nog geen producten geselecteerd.</p>
-          ) : (
-            <ul className="selected-list">
-              {selectedProducts.map((p) => (
-                <li key={p.id}>
-                  <span>{p.name}</span>
-                  <span className="category-chip">{p.category}</span>
-                </li>
-              ))}
-            </ul>
-          )}
 
           <div className="actions">
             <button onClick={optimizeBasket} disabled={!selectedIds.length}>
-              {loadingBasket ? "Berekenen..." : "Mandje Optimaliseren"}
+              {loadingBasket ? "Bezig..." : "Optimaliseer mandje"}
             </button>
             <button onClick={getAIRecommendations} disabled={!selectedIds.length}>
-              {loadingAI ? "Analyseren..." : "AI Bespaartips"}
+              {loadingAI ? "AI denkt..." : "Vraag AI bespaartips"}
             </button>
           </div>
 
           <div className="budget-box">
-            <label>Budget (€)</label>
+            <label>Optioneel budget (€)</label>
             <input
               type="number"
               value={budget}
@@ -333,29 +264,54 @@ export default function App() {
               placeholder="Bijv. 25"
             />
           </div>
+        </section>
+
+        <section className="card right-panel">
+          <h2>Geselecteerde producten</h2>
+
+          {selectedProducts.length === 0 ? (
+            <p className="empty-text">Nog geen producten geselecteerd.</p>
+          ) : (
+            <ul className="selected-list">
+              {selectedProducts.map((p) => (
+                <li key={p.id}>
+                  <strong>{p.name}</strong>
+                  <span>{p.category}</span>
+                </li>
+              ))}
+            </ul>
+          )}
 
           {basketResult?.basket && (
             <div className="result-box">
-              <h3>Mandje Optimalisatie</h3>
-              <p>
-                <strong>Beste 1 winkel:</strong>{" "}
-                {basketResult.basket.singleStoreBest?.name} (€
-                {basketResult.basket.singleStoreBest?.total})
-              </p>
-              <p>
-                <strong>Gesplitste totaalprijs:</strong> €
-                {basketResult.basket.splitTotal}
-              </p>
-              <p>
-                <strong>Besparing:</strong> €
-                {basketResult.basket.savingsVsSingleStore}
-              </p>
+              <h3>Mandje optimalisatie</h3>
 
-              <h4>Beste verdeling</h4>
+              {basketResult.basket.singleStoreBest && (
+                <>
+                  <p>
+                    <strong>Beste 1 winkel:</strong>{" "}
+                    {basketResult.basket.singleStoreBest.name} (
+                    €{basketResult.basket.singleStoreBest.total})
+                  </p>
+
+                  <p>
+                    <strong>Goedkoopste totaal:</strong> €
+                    {basketResult.basket.splitTotal}
+                  </p>
+
+                  <p>
+                    <strong>Besparing:</strong> €
+                    {basketResult.basket.savingsVsSingleStore}
+                  </p>
+                </>
+              )}
+
+              <h4>Beste combinatie per winkel</h4>
               <ul>
                 {basketResult.basket.splitPlan.map((item, idx) => (
                   <li key={idx}>
-                    {item.item} → {item.storeId.toUpperCase()} (€{item.price})
+                    <strong>{item.item}</strong> →{" "}
+                    {storeNameMap[item.storeId] || item.storeId} (€{item.price})
                   </li>
                 ))}
               </ul>
@@ -364,7 +320,8 @@ export default function App() {
 
           {aiResult && (
             <div className="result-box">
-              <h3>AI Bespaaradvies</h3>
+              <h3>AI bespaaradvies</h3>
+
               <ul>
                 {aiResult.insights?.map((tip, idx) => (
                   <li key={idx}>{tip}</li>
@@ -372,14 +329,14 @@ export default function App() {
               </ul>
 
               {aiResult.budgetStatus && (
-                <p className="budget-status">
+                <div className="budget-result">
                   <strong>Budgetcheck:</strong>{" "}
                   {aiResult.budgetStatus.withinBudget
-                    ? `Binnen budget met €${aiResult.budgetStatus.difference}`
-                    : `Over budget met €${Math.abs(
+                    ? `Je zit €${aiResult.budgetStatus.difference} onder budget`
+                    : `Je zit €${Math.abs(
                         aiResult.budgetStatus.difference
-                      )}`}
-                </p>
+                      )} boven budget`}
+                </div>
               )}
             </div>
           )}
@@ -387,7 +344,8 @@ export default function App() {
       </div>
 
       <section className="card chat-card">
-        <h2>AI Boodschappen Assistent</h2>
+        <h2>AI boodschappencoach</h2>
+
         <div className="chat-box">
           {chatMessages.map((msg, index) => (
             <div key={index} className={`chat-message ${msg.role}`}>
@@ -395,6 +353,7 @@ export default function App() {
               {msg.content}
             </div>
           ))}
+
           {loadingChat && (
             <div className="chat-message assistant">AI is aan het typen...</div>
           )}
@@ -405,10 +364,10 @@ export default function App() {
             type="text"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Vraag bijv.: Waar koop ik dit mandje het goedkoopst?"
+            placeholder="Bijv. Hoe maak ik dit mandje goedkoper?"
             onKeyDown={(e) => e.key === "Enter" && sendChat()}
           />
-          <button onClick={sendChat}>Verstuur</button>
+          <button onClick={sendChat}>Versturen</button>
         </div>
       </section>
     </div>
