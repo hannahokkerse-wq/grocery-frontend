@@ -251,6 +251,9 @@ body {
   font-weight: 700;
   cursor: pointer;
   transition: 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .store-tab:hover {
@@ -262,6 +265,19 @@ body {
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
   color: white;
   border-color: var(--primary);
+}
+
+.store-logo {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: white;
+  padding: 1px;
+}
+
+.store-emoji {
+  font-size: 16px;
 }
 
 .products-grid {
@@ -372,13 +388,22 @@ body {
   margin-top: 12px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 8px 10px;
   background: var(--panel-soft);
   border: 1px solid var(--border);
   border-radius: 999px;
   font-size: 0.82rem;
   color: var(--muted);
+}
+
+.best-store-logo {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: white;
+  padding: 1px;
 }
 
 .mini-price-row {
@@ -664,6 +689,21 @@ body {
 
 .plan-item:last-child {
   border-bottom: none;
+}
+
+.plan-item-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-store-logo {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: white;
+  padding: 1px;
 }
 
 .ai-list {
