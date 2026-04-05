@@ -4,12 +4,15 @@ import "./style.css";
 const API_BASE = "https://grocery-discount-api.onrender.com";
 
 const STORE_META = {
-  all: { label: "Alle winkels", emoji: "🛒" },
-  ah: { label: "Albert Heijn", emoji: "🟦" },
-  jumbo: { label: "Jumbo", emoji: "🟨" },
-  lidl: { label: "Lidl", emoji: "🟦" },
-  aldi: { label: "Aldi", emoji: "🟦" },
+  all: { label: "Alle winkels", short: "ALL", emoji: "🛒" },
+  ah: { label: "Albert Heijn", short: "AH", emoji: "🟦" },
+  jumbo: { label: "Jumbo", short: "Jumbo", emoji: "🟨" },
+  lidl: { label: "Lidl", short: "Lidl", emoji: "🟦" },
+  aldi: { label: "Aldi", short: "Aldi", emoji: "🟦" },
 };
+
+const FAVORITES_KEY = "grocery-favorites";
+const SAVED_BASKET_KEY = "grocery-saved-basket";
 
 export default function App() {
   const [products, setProducts] = useState([]);
@@ -20,6 +23,11 @@ export default function App() {
   const [chatInput, setChatInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeStore, setActiveStore] = useState("all");
+  const [darkMode, setDarkMode] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("Alle");
+  const [sortMode, setSortMode] = useState("price-asc");
+  const [favorites, setFavorites] = useState([]);
+  const [savedMessage, setSavedMessage] = useState("");
 
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [loadingBasket, setLoadingBasket] = useState(false);
@@ -30,12 +38,26 @@ export default function App() {
     {
       role: "assistant",
       content:
-        "Hoi 👋 Ik ben je Grocery Discount AI. Vraag me hoe je kunt besparen op je mandje.",
+        "Hoi 👋 Ik ben je Grocery Discount AI. Ik help je slimmer en goedkoper boodschappen doen.",
     },
   ]);
 
   useEffect(() => {
     fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+    return () => document.body.classList.remove("dark-mode");
+  }, [darkMode]);
+
+  useEffect(() => {
+    try {
+      const storedFavorites = JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]");
+      setFavorites(Array.isArray(storedFavorites) ? storedFavorites : []);
+    } catch {
+      setFavorites([]);
+    }
   }, []);
 
   async function fetchProducts(query = "") {
@@ -61,6 +83,52 @@ export default function App() {
         ? prev.filter((id) => id !== productId)
         : [...prev, productId]
     );
+  }
+
+  function toggleFavorite(productId) {
+    const next = favorites.includes(productId)
+      ? favorites.filter((id) => id !== productId)
+      : [...favorites, productId];
+
+    setFavorites(next);
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+  }
+
+  function saveBasketLocal() {
+    const payload = {
+      selectedIds,
+      budget,
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(SAVED_BASKET_KEY, JSON.stringify(payload));
+    setSavedMessage("Mandje opgeslagen");
+    setTimeout(() => setSavedMessage(""), 2000);
+  }
+
+  function loadBasketLocal() {
+    try {
+      const raw = localStorage.getItem(SAVED_BASKET_KEY);
+      if (!raw) {
+        setSavedMessage("Geen opgeslagen mandje gevonden");
+        setTimeout(() => setSavedMessage(""), 2000);
+        return;
+      }
+
+      const parsed = JSON.parse(raw);
+      setSelectedIds(parsed.selectedIds || []);
+      setBudget(parsed.budget || "");
+      setSavedMessage("Mandje geladen");
+      setTimeout(() => setSavedMessage(""), 2000);
+    } catch {
+      setSavedMessage("Kon mandje niet laden");
+      setTimeout(() => setSavedMessage(""), 2000);
+    }
+  }
+
+  function clearBasket() {
+    setSelectedIds([]);
+    setBasketResult(null);
+    setAiResult(null);
   }
 
   async function optimizeBasket() {
@@ -115,6 +183,7 @@ export default function App() {
 
     const userMessage = { role: "user", content: chatInput };
     setChatMessages((prev) => [...prev, userMessage]);
+    const currentInput = chatInput;
     setChatInput("");
 
     try {
@@ -127,7 +196,7 @@ export default function App() {
         },
         body: JSON.stringify({
           session_id: "frontend-session",
-          message: chatInput,
+          message: currentInput,
           product_ids: selectedIds,
         }),
       });
@@ -135,7 +204,6 @@ export default function App() {
       const data = await res.json();
 
       let replyText = "";
-
       if (data.reply) {
         replyText = data.reply;
       } else if (data.fallback && Array.isArray(data.fallback)) {
@@ -162,6 +230,11 @@ export default function App() {
     }
   }
 
+  const categories = useMemo(() => {
+    const unique = [...new Set(products.map((p) => p.category))];
+    return ["Alle", ...unique];
+  }, [products]);
+
   const selectedProducts = useMemo(() => {
     return products.filter((p) => selectedIds.includes(p.id));
   }, [products, selectedIds]);
@@ -169,25 +242,48 @@ export default function App() {
   const filteredProducts = useMemo(() => {
     let filtered = products.filter((product) => {
       const q = searchQuery.toLowerCase();
-      return (
+      const matchesQuery =
         product.name.toLowerCase().includes(q) ||
         product.category.toLowerCase().includes(q) ||
-        (product.tags || []).some((tag) => tag.toLowerCase().includes(q))
-      );
+        (product.tags || []).some((tag) => tag.toLowerCase().includes(q));
+
+      const matchesStore =
+        activeStore === "all"
+          ? true
+          : product.prices && product.prices[activeStore] !== undefined;
+
+      const matchesCategory =
+        activeCategory === "Alle" ? true : product.category === activeCategory;
+
+      return matchesQuery && matchesStore && matchesCategory;
     });
 
-    if (activeStore !== "all") {
-      filtered = filtered.filter(
-        (product) => product.prices && product.prices[activeStore] !== undefined
-      );
+    if (sortMode === "price-asc") {
+      filtered.sort((a, b) => getLowestPrice(a) - getLowestPrice(b));
+    } else if (sortMode === "price-desc") {
+      filtered.sort((a, b) => getLowestPrice(b) - getLowestPrice(a));
+    } else if (sortMode === "name-asc") {
+      filtered.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortMode === "favorites") {
+      filtered.sort((a, b) => {
+        const aFav = favorites.includes(a.id) ? 1 : 0;
+        const bFav = favorites.includes(b.id) ? 1 : 0;
+        return bFav - aFav;
+      });
     }
 
     return filtered;
-  }, [products, searchQuery, activeStore]);
+  }, [products, searchQuery, activeStore, activeCategory, sortMode, favorites]);
 
   function getLowestPrice(product) {
-    if (!product.prices) return null;
+    if (!product.prices) return 0;
     return Math.min(...Object.values(product.prices));
+  }
+
+  function getCheapestStore(product) {
+    if (!product.prices) return null;
+    const entry = Object.entries(product.prices).sort((a, b) => a[1] - b[1])[0];
+    return entry ? entry[0] : null;
   }
 
   function getStorePrice(product, storeId) {
@@ -222,16 +318,60 @@ export default function App() {
   }
 
   const budgetStatus = aiResult?.budgetStatus;
+  const selectedLowestTotal = selectedProducts.reduce(
+    (sum, p) => sum + (getLowestPrice(p) || 0),
+    0
+  );
+  const possibleSavings = basketResult?.basket?.savingsVsSingleStore || 0;
+  const savingsPercent =
+    basketResult?.basket?.singleStoreBest?.total > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (basketResult.basket.savingsVsSingleStore /
+              basketResult.basket.singleStoreBest.total) *
+              100
+          )
+        )
+      : 0;
 
   return (
     <div className="app-shell">
       <header className="hero">
-        <div className="hero-badge">🛒 Smart Grocery Savings</div>
+        <div className="hero-topbar">
+          <div className="hero-badge">🛒 Smart Grocery Savings</div>
+          <button
+            className="mode-toggle"
+            onClick={() => setDarkMode((prev) => !prev)}
+          >
+            {darkMode ? "☀️ Light" : "🌙 Dark"}
+          </button>
+        </div>
+
         <h1>Grocery Discount AI</h1>
         <p>
           Vergelijk supermarktprijzen, optimaliseer je mandje en krijg slimme
           AI-bespaartips.
         </p>
+
+        <div className="top-stats">
+          <div className="stat-card">
+            <span>Producten</span>
+            <strong>{products.length}</strong>
+          </div>
+          <div className="stat-card">
+            <span>Geselecteerd</span>
+            <strong>{selectedIds.length}</strong>
+          </div>
+          <div className="stat-card highlight">
+            <span>Laagste totaal</span>
+            <strong>{formatEuro(selectedLowestTotal)}</strong>
+          </div>
+          <div className="stat-card">
+            <span>Favorieten</span>
+            <strong>{favorites.length}</strong>
+          </div>
+        </div>
       </header>
 
       <div className="main-grid">
@@ -261,18 +401,52 @@ export default function App() {
             />
           </div>
 
-          <div className="store-tabs">
-            {Object.entries(STORE_META).map(([storeId, store]) => (
-              <button
-                key={storeId}
-                className={`store-tab ${
-                  activeStore === storeId ? "active" : ""
-                }`}
-                onClick={() => setActiveStore(storeId)}
-              >
-                <span>{store.emoji}</span> {store.label}
-              </button>
-            ))}
+          <div className="toolbar-grid">
+            <div className="toolbar-block">
+              <label>Winkel</label>
+              <div className="store-tabs">
+                {Object.entries(STORE_META).map(([storeId, store]) => (
+                  <button
+                    key={storeId}
+                    className={`store-tab ${
+                      activeStore === storeId ? "active" : ""
+                    }`}
+                    onClick={() => setActiveStore(storeId)}
+                  >
+                    <span>{store.emoji}</span> {store.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="toolbar-inline">
+              <div className="select-wrap">
+                <label>Categorie</label>
+                <select
+                  value={activeCategory}
+                  onChange={(e) => setActiveCategory(e.target.value)}
+                >
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="select-wrap">
+                <label>Sorteren</label>
+                <select
+                  value={sortMode}
+                  onChange={(e) => setSortMode(e.target.value)}
+                >
+                  <option value="price-asc">Goedkoopste eerst</option>
+                  <option value="price-desc">Duurste eerst</option>
+                  <option value="name-asc">Naam A-Z</option>
+                  <option value="favorites">Favorieten eerst</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           {loadingProducts ? (
@@ -285,36 +459,61 @@ export default function App() {
                   activeStore === "all"
                     ? getLowestPrice(product)
                     : getStorePrice(product, activeStore);
+                const cheapestStore = getCheapestStore(product);
+                const isFavorite = favorites.includes(product.id);
 
                 return (
                   <div
                     key={product.id}
-                    className={`product-card ${selected ? "selected" : ""}`}
-                    onClick={() => toggleProduct(product.id)}
+                    className={`product-card ${selected ? "selected" : ""} ${
+                      cheapestStore === "aldi" ? "best-deal" : ""
+                    }`}
                   >
-                    <div className="product-top">
-                      <h3>{product.name}</h3>
-                      <div className="product-tags">
-                        {(product.tags || []).slice(0, 2).map((tag) => (
-                          <span key={tag}>{renderTagBadge(tag)}</span>
-                        ))}
+                    <button
+                      className={`favorite-btn ${isFavorite ? "active" : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(product.id);
+                      }}
+                    >
+                      {isFavorite ? "❤️" : "🤍"}
+                    </button>
+
+                    <div
+                      className="product-click-area"
+                      onClick={() => toggleProduct(product.id)}
+                    >
+                      <div className="product-top">
+                        <h3>{product.name}</h3>
+                        <div className="product-tags">
+                          {(product.tags || []).slice(0, 2).map((tag) => (
+                            <span key={tag}>{renderTagBadge(tag)}</span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
 
-                    <p className="category">{product.category}</p>
+                      <p className="category">{product.category}</p>
 
-                    <div className="price-line">
-                      <span className="price-label">
-                        {activeStore === "all" ? "Vanaf" : "Prijs"}
-                      </span>
-                      <strong>{formatEuro(displayPrice)}</strong>
-                    </div>
+                      <div className="price-line">
+                        <span className="price-label">
+                          {activeStore === "all" ? "Vanaf" : "Prijs"}
+                        </span>
+                        <strong>{formatEuro(displayPrice)}</strong>
+                      </div>
 
-                    <div className="mini-price-row">
-                      <span>AH {formatEuro(product.prices?.ah)}</span>
-                      <span>Jumbo {formatEuro(product.prices?.jumbo)}</span>
-                      <span>Lidl {formatEuro(product.prices?.lidl)}</span>
-                      <span>Aldi {formatEuro(product.prices?.aldi)}</span>
+                      <div className="best-store-chip">
+                        Beste deal bij:{" "}
+                        <strong>
+                          {STORE_META[cheapestStore]?.short || cheapestStore}
+                        </strong>
+                      </div>
+
+                      <div className="mini-price-row">
+                        <span>AH {formatEuro(product.prices?.ah)}</span>
+                        <span>Jumbo {formatEuro(product.prices?.jumbo)}</span>
+                        <span>Lidl {formatEuro(product.prices?.lidl)}</span>
+                        <span>Aldi {formatEuro(product.prices?.aldi)}</span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -338,7 +537,21 @@ export default function App() {
             >
               {loadingAI ? "Bezig..." : "Get AI Savings Tips"}
             </button>
+
+            <button className="ghost-btn" onClick={saveBasketLocal}>
+              Save Basket
+            </button>
+
+            <button className="ghost-btn" onClick={loadBasketLocal}>
+              Load Basket
+            </button>
+
+            <button className="ghost-btn danger" onClick={clearBasket}>
+              Clear
+            </button>
           </div>
+
+          {savedMessage && <div className="saved-message">{savedMessage}</div>}
 
           <div className="budget-box">
             <label>Optional budget (€)</label>
@@ -371,7 +584,12 @@ export default function App() {
                     <strong>{product.name}</strong>
                     <p>{product.category}</p>
                   </div>
-                  <span>{formatEuro(getLowestPrice(product))}</span>
+                  <div className="selected-meta">
+                    <span>{formatEuro(getLowestPrice(product))}</span>
+                    {favorites.includes(product.id) && (
+                      <span className="fav-chip">Favoriet</span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -400,6 +618,18 @@ export default function App() {
                   <strong>
                     {formatEuro(basketResult.basket.savingsVsSingleStore)}
                   </strong>
+                </div>
+              </div>
+
+              <div className="savings-meter-wrap">
+                <div className="savings-meter-label">
+                  Bespaarscore <strong>{savingsPercent}%</strong>
+                </div>
+                <div className="savings-meter">
+                  <div
+                    className="savings-meter-fill"
+                    style={{ width: `${savingsPercent}%` }}
+                  />
                 </div>
               </div>
 
@@ -446,6 +676,10 @@ export default function App() {
                   <li key={index}>{tip}</li>
                 ))}
               </ul>
+
+              <div className="mini-insight">
+                Mogelijke besparing nu: <strong>{formatEuro(possibleSavings)}</strong>
+              </div>
             </div>
           )}
 
