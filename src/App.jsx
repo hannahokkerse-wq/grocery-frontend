@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import "./style.css";
 
+import ahLogo from "./assets/ah.png";
+import jumboLogo from "./assets/jumbo.png";
+import lidlLogo from "./assets/lidl.png";
+import aldiLogo from "./assets/aldi.png";
+
 const API_BASE = "https://grocery-discount-api.onrender.com";
 
 const STORE_META = {
-  all: { label: "Alle winkels", short: "ALL", emoji: "🛒" },
-  ah: { label: "Albert Heijn", short: "AH", emoji: "🟦" },
-  jumbo: { label: "Jumbo", short: "Jumbo", emoji: "🟨" },
-  lidl: { label: "Lidl", short: "Lidl", emoji: "🟦" },
-  aldi: { label: "Aldi", short: "Aldi", emoji: "🟦" },
+  all: { label: "Alle winkels", short: "ALL", logo: null },
+  ah: { label: "Albert Heijn", short: "AH", logo: ahLogo },
+  jumbo: { label: "Jumbo", short: "Jumbo", logo: jumboLogo },
+  lidl: { label: "Lidl", short: "Lidl", logo: lidlLogo },
+  aldi: { label: "Aldi", short: "Aldi", logo: aldiLogo },
 };
 
 const FAVORITES_KEY = "grocery-favorites";
@@ -413,7 +418,16 @@ export default function App() {
                     }`}
                     onClick={() => setActiveStore(storeId)}
                   >
-                    <span>{store.emoji}</span> {store.label}
+                    {store.logo ? (
+                      <img
+                        src={store.logo}
+                        alt={store.label}
+                        className="store-logo"
+                      />
+                    ) : (
+                      <span className="store-emoji">🛒</span>
+                    )}
+                    {store.label}
                   </button>
                 ))}
               </div>
@@ -502,6 +516,13 @@ export default function App() {
                       </div>
 
                       <div className="best-store-chip">
+                        {cheapestStore && STORE_META[cheapestStore]?.logo && (
+                          <img
+                            src={STORE_META[cheapestStore].logo}
+                            alt={STORE_META[cheapestStore].label}
+                            className="best-store-logo"
+                          />
+                        )}
                         Beste deal bij:{" "}
                         <strong>
                           {STORE_META[cheapestStore]?.short || cheapestStore}
@@ -638,7 +659,14 @@ export default function App() {
                 {basketResult.basket.splitPlan.map((item, index) => (
                   <div key={index} className="plan-item">
                     <span>{item.item}</span>
-                    <span>
+                    <span className="plan-item-right">
+                      {STORE_META[item.storeId]?.logo && (
+                        <img
+                          src={STORE_META[item.storeId].logo}
+                          alt={STORE_META[item.storeId].label}
+                          className="plan-store-logo"
+                        />
+                      )}
                       {item.storeId.toUpperCase()} • {formatEuro(item.price)}
                     </span>
                   </div>
