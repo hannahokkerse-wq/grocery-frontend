@@ -292,9 +292,8 @@ export default function App() {
   }
 
   function getCheapestStore(product) {
-    return product.cheapestOption?.storeId || null
-      or null
-  }
+  return product.cheapestOption?.storeId || null;
+}
 
   function getStorePrice(product, storeId) {
     if (!product.prices) return null;
