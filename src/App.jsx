@@ -3,6 +3,14 @@ import "./style.css";
 
 const API_BASE = "https://grocery-discount-api.onrender.com";
 
+const STORE_META = {
+  all: { label: "Alle winkels", emoji: "🛒" },
+  ah: { label: "Albert Heijn", emoji: "🟦" },
+  jumbo: { label: "Jumbo", emoji: "🟨" },
+  lidl: { label: "Lidl", emoji: "🟦" },
+  aldi: { label: "Aldi", emoji: "🟦" },
+};
+
 export default function App() {
   const [products, setProducts] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -11,6 +19,8 @@ export default function App() {
   const [budget, setBudget] = useState("");
   const [chatInput, setChatInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeStore, setActiveStore] = useState("all");
+
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [loadingBasket, setLoadingBasket] = useState(false);
   const [loadingAI, setLoadingAI] = useState(false);
@@ -20,46 +30,42 @@ export default function App() {
     {
       role: "assistant",
       content:
-        "Hoi 👋 Ik ben je Grocery Discount AI. Zoek producten, vergelijk winkels en ontdek waar je het goedkoopst uit bent.",
+        "Hoi 👋 Ik ben je Grocery Discount AI. Vraag me hoe je kunt besparen op je mandje.",
     },
   ]);
 
-  const fetchProducts = async (query = "") => {
-    setLoadingProducts(true);
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  async function fetchProducts(query = "") {
     try {
-      const url = query.trim()
+      setLoadingProducts(true);
+      const url = query
         ? `${API_BASE}/products?q=${encodeURIComponent(query)}`
         : `${API_BASE}/products`;
 
       const res = await fetch(url);
       const data = await res.json();
       setProducts(data.products || []);
-    } catch (err) {
-      console.error("Failed to load products", err);
+    } catch (error) {
+      console.error("Fout bij ophalen producten:", error);
     } finally {
       setLoadingProducts(false);
     }
-  };
+  }
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const selectedProducts = useMemo(() => {
-    return products.filter((p) => selectedIds.includes(p.id));
-  }, [products, selectedIds]);
-
-  const toggleProduct = (id) => {
+  function toggleProduct(productId) {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      prev.includes(productId)
+        ? prev.filter((id) => id !== productId)
+        : [...prev, productId]
     );
-  };
+  }
 
-  const optimizeBasket = async () => {
-    setLoadingBasket(true);
-    setBasketResult(null);
-
+  async function optimizeBasket() {
     try {
+      setLoadingBasket(true);
       const res = await fetch(`${API_BASE}/basket/optimize`, {
         method: "POST",
         headers: {
@@ -67,24 +73,22 @@ export default function App() {
         },
         body: JSON.stringify({
           product_ids: selectedIds,
-          location: "Nederland",
+          location: "Amsterdam",
         }),
       });
 
       const data = await res.json();
       setBasketResult(data);
-    } catch (err) {
-      console.error("Basket optimize failed", err);
+    } catch (error) {
+      console.error("Fout bij basket optimize:", error);
     } finally {
       setLoadingBasket(false);
     }
-  };
+  }
 
-  const getAIRecommendations = async () => {
-    setLoadingAI(true);
-    setAiResult(null);
-
+  async function getAiTips() {
     try {
+      setLoadingAI(true);
       const res = await fetch(`${API_BASE}/ai/recommend`, {
         method: "POST",
         headers: {
@@ -93,34 +97,36 @@ export default function App() {
         body: JSON.stringify({
           product_ids: selectedIds,
           budget: budget ? Number(budget) : null,
-          location: "Nederland",
+          location: "Amsterdam",
         }),
       });
 
       const data = await res.json();
       setAiResult(data);
-    } catch (err) {
-      console.error("AI recommendations failed", err);
+    } catch (error) {
+      console.error("Fout bij AI tips:", error);
     } finally {
       setLoadingAI(false);
     }
-  };
+  }
 
-  const sendChat = async () => {
+  async function sendChat() {
     if (!chatInput.trim()) return;
 
     const userMessage = { role: "user", content: chatInput };
     setChatMessages((prev) => [...prev, userMessage]);
-    setLoadingChat(true);
+    setChatInput("");
 
     try {
+      setLoadingChat(true);
+
       const res = await fetch(`${API_BASE}/ai/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          session_id: "demo-session",
+          session_id: "frontend-session",
           message: chatInput,
           product_ids: selectedIds,
         }),
@@ -128,213 +134,356 @@ export default function App() {
 
       const data = await res.json();
 
-      const reply =
-        data.reply ||
-        (data.fallback ? data.fallback.join(" ") : "Geen reactie van AI.");
+      let replyText = "";
+
+      if (data.reply) {
+        replyText = data.reply;
+      } else if (data.fallback && Array.isArray(data.fallback)) {
+        replyText = data.fallback.join("\n");
+      } else {
+        replyText = "Geen antwoord ontvangen.";
+      }
 
       setChatMessages((prev) => [
         ...prev,
-        { role: "assistant", content: reply },
+        { role: "assistant", content: replyText },
       ]);
-    } catch (err) {
-      console.error("Chat failed", err);
+    } catch (error) {
+      console.error("Fout bij AI chat:", error);
       setChatMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "Er ging iets mis bij het ophalen van AI-advies.",
+          content: "Er ging iets mis met de chat. Probeer opnieuw.",
         },
       ]);
     } finally {
       setLoadingChat(false);
-      setChatInput("");
     }
-  };
+  }
 
-  const handleSearch = () => {
-    fetchProducts(searchQuery);
-  };
+  const selectedProducts = useMemo(() => {
+    return products.filter((p) => selectedIds.includes(p.id));
+  }, [products, selectedIds]);
+
+  const filteredProducts = useMemo(() => {
+    let filtered = products.filter((product) => {
+      const q = searchQuery.toLowerCase();
+      return (
+        product.name.toLowerCase().includes(q) ||
+        product.category.toLowerCase().includes(q) ||
+        (product.tags || []).some((tag) => tag.toLowerCase().includes(q))
+      );
+    });
+
+    if (activeStore !== "all") {
+      filtered = filtered.filter(
+        (product) => product.prices && product.prices[activeStore] !== undefined
+      );
+    }
+
+    return filtered;
+  }, [products, searchQuery, activeStore]);
+
+  function getLowestPrice(product) {
+    if (!product.prices) return null;
+    return Math.min(...Object.values(product.prices));
+  }
+
+  function getStorePrice(product, storeId) {
+    if (!product.prices) return null;
+    return product.prices[storeId];
+  }
+
+  function formatEuro(value) {
+    if (value === null || value === undefined) return "-";
+    return `€${Number(value).toFixed(2)}`;
+  }
+
+  function renderTagBadge(tag) {
+    const lower = tag.toLowerCase();
+
+    if (lower.includes("bonus")) {
+      return <span className="tag-badge bonus">🔥 Bonus</span>;
+    }
+    if (lower.includes("actie")) {
+      return <span className="tag-badge actie">💸 Actie</span>;
+    }
+    if (lower.includes("populair")) {
+      return <span className="tag-badge populair">⭐ Populair</span>;
+    }
+    if (lower.includes("gezond")) {
+      return <span className="tag-badge gezond">🥗 Gezond</span>;
+    }
+    if (lower.includes("vers")) {
+      return <span className="tag-badge vers">🍎 Vers</span>;
+    }
+    return <span className="tag-badge">{tag}</span>;
+  }
+
+  const budgetStatus = aiResult?.budgetStatus;
 
   return (
-    <div className="app">
+    <div className="app-shell">
       <header className="hero">
-        <h1>🛒 Grocery Discount AI</h1>
+        <div className="hero-badge">🛒 Smart Grocery Savings</div>
+        <h1>Grocery Discount AI</h1>
         <p>
-          Vergelijk supermarktprijzen, optimaliseer je boodschappenmandje en
-          krijg AI-bespaartips.
+          Vergelijk supermarktprijzen, optimaliseer je mandje en krijg slimme
+          AI-bespaartips.
         </p>
       </header>
 
-      <div className="layout">
-        <section className="card">
-          <h2>Zoek producten</h2>
+      <div className="main-grid">
+        <section className="panel left-panel">
+          <div className="panel-header">
+            <div>
+              <h2>Select Grocery Items</h2>
+              <p className="panel-subtitle">
+                Kies producten en vergelijk direct prijzen tussen winkels.
+              </p>
+            </div>
+            <div className="product-counter">
+              {selectedIds.length} geselecteerd
+            </div>
+          </div>
 
           <div className="search-row">
             <input
               type="text"
-              placeholder="Zoek bijvoorbeeld: melk, eieren, kipfilet..."
+              className="search-input"
+              placeholder="Zoek producten (bijv. melk, rijst, yoghurt...)"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                fetchProducts(e.target.value);
+              }}
             />
-            <button onClick={handleSearch}>Zoeken</button>
-            <button className="secondary-btn" onClick={() => {
-              setSearchQuery("");
-              fetchProducts("");
-            }}>
-              Reset
-            </button>
           </div>
 
-          <div className="results-info">
-            {loadingProducts ? (
-              <p>Producten laden...</p>
-            ) : (
-              <p>{products.length} producten gevonden</p>
-            )}
+          <div className="store-tabs">
+            {Object.entries(STORE_META).map(([storeId, store]) => (
+              <button
+                key={storeId}
+                className={`store-tab ${
+                  activeStore === storeId ? "active" : ""
+                }`}
+                onClick={() => setActiveStore(storeId)}
+              >
+                <span>{store.emoji}</span> {store.label}
+              </button>
+            ))}
           </div>
 
-          <div className="product-grid">
-            {products.map((product) => {
-              const cheapest = Math.min(...Object.values(product.prices || {}));
-              const isSelected = selectedIds.includes(product.id);
+          {loadingProducts ? (
+            <p className="loading-text">Producten laden...</p>
+          ) : (
+            <div className="products-grid">
+              {filteredProducts.map((product) => {
+                const selected = selectedIds.includes(product.id);
+                const displayPrice =
+                  activeStore === "all"
+                    ? getLowestPrice(product)
+                    : getStorePrice(product, activeStore);
 
-              return (
-                <button
-                  key={product.id}
-                  className={`product-card ${isSelected ? "selected" : ""}`}
-                  onClick={() => toggleProduct(product.id)}
-                >
-                  <h3>{product.name}</h3>
-                  <p className="category">{product.category}</p>
-                  <span className="price">Vanaf €{cheapest.toFixed(2)}</span>
-
-                  {product.tags?.length > 0 && (
-                    <div className="tag-row">
-                      {product.tags.map((tag, idx) => (
-                        <span key={idx} className="tag">
-                          {tag}
-                        </span>
-                      ))}
+                return (
+                  <div
+                    key={product.id}
+                    className={`product-card ${selected ? "selected" : ""}`}
+                    onClick={() => toggleProduct(product.id)}
+                  >
+                    <div className="product-top">
+                      <h3>{product.name}</h3>
+                      <div className="product-tags">
+                        {(product.tags || []).slice(0, 2).map((tag) => (
+                          <span key={tag}>{renderTagBadge(tag)}</span>
+                        ))}
+                      </div>
                     </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
 
-          <div className="actions">
-            <button onClick={optimizeBasket} disabled={!selectedIds.length}>
+                    <p className="category">{product.category}</p>
+
+                    <div className="price-line">
+                      <span className="price-label">
+                        {activeStore === "all" ? "Vanaf" : "Prijs"}
+                      </span>
+                      <strong>{formatEuro(displayPrice)}</strong>
+                    </div>
+
+                    <div className="mini-price-row">
+                      <span>AH {formatEuro(product.prices?.ah)}</span>
+                      <span>Jumbo {formatEuro(product.prices?.jumbo)}</span>
+                      <span>Lidl {formatEuro(product.prices?.lidl)}</span>
+                      <span>Aldi {formatEuro(product.prices?.aldi)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="action-row">
+            <button
+              className="primary-btn"
+              onClick={optimizeBasket}
+              disabled={!selectedIds.length || loadingBasket}
+            >
               {loadingBasket ? "Bezig..." : "Optimize Basket"}
             </button>
-            <button onClick={getAIRecommendations} disabled={!selectedIds.length}>
-              {loadingAI ? "AI denkt na..." : "Get AI Savings Tips"}
+
+            <button
+              className="secondary-btn"
+              onClick={getAiTips}
+              disabled={!selectedIds.length || loadingAI}
+            >
+              {loadingAI ? "Bezig..." : "Get AI Savings Tips"}
             </button>
           </div>
 
           <div className="budget-box">
-            <label>Optioneel budget (€)</label>
+            <label>Optional budget (€)</label>
             <input
               type="number"
+              placeholder="bijv. 20"
               value={budget}
               onChange={(e) => setBudget(e.target.value)}
-              placeholder="Bijv. 25"
             />
           </div>
         </section>
 
-        <section className="card">
-          <h2>Geselecteerde producten</h2>
+        <section className="panel right-panel">
+          <div className="panel-header">
+            <div>
+              <h2>Selected Basket</h2>
+              <p className="panel-subtitle">
+                Jouw gekozen producten en slimme aanbevelingen.
+              </p>
+            </div>
+          </div>
 
           {selectedProducts.length === 0 ? (
-            <p>Nog geen producten geselecteerd.</p>
+            <p className="empty-text">Nog geen producten geselecteerd.</p>
           ) : (
-            <ul className="selected-list">
-              {selectedProducts.map((p) => (
-                <li key={p.id}>
-                  <strong>{p.name}</strong>
-                  <br />
-                  <span>{p.category}</span>
-                </li>
+            <div className="selected-list">
+              {selectedProducts.map((product) => (
+                <div key={product.id} className="selected-item">
+                  <div>
+                    <strong>{product.name}</strong>
+                    <p>{product.category}</p>
+                  </div>
+                  <span>{formatEuro(getLowestPrice(product))}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
 
           {basketResult?.basket && (
-            <div className="result-box">
+            <div className="result-card">
               <h3>Basket Optimization</h3>
-              <p>
-                <strong>Beste winkel:</strong>{" "}
-                {basketResult.basket.singleStoreBest.name} (€
-                {basketResult.basket.singleStoreBest.total})
-              </p>
-              <p>
-                <strong>Split total:</strong> €{basketResult.basket.splitTotal}
-              </p>
-              <p>
-                <strong>Besparing:</strong> €
-                {basketResult.basket.savingsVsSingleStore}
-              </p>
 
-              <h4>Goedkoopste verdeling</h4>
-              <ul>
-                {basketResult.basket.splitPlan.map((item, idx) => (
-                  <li key={idx}>
-                    {item.item} → {item.storeId.toUpperCase()} (€{item.price})
-                  </li>
+              <div className="summary-grid">
+                <div className="summary-pill">
+                  <span>Beste winkel</span>
+                  <strong>{basketResult.basket.singleStoreBest?.name}</strong>
+                  <small>
+                    {formatEuro(basketResult.basket.singleStoreBest?.total)}
+                  </small>
+                </div>
+
+                <div className="summary-pill">
+                  <span>Split totaal</span>
+                  <strong>{formatEuro(basketResult.basket.splitTotal)}</strong>
+                </div>
+
+                <div className="summary-pill savings">
+                  <span>Besparing</span>
+                  <strong>
+                    {formatEuro(basketResult.basket.savingsVsSingleStore)}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="plan-list">
+                <h4>Beste split plan</h4>
+                {basketResult.basket.splitPlan.map((item, index) => (
+                  <div key={index} className="plan-item">
+                    <span>{item.item}</span>
+                    <span>
+                      {item.storeId.toUpperCase()} • {formatEuro(item.price)}
+                    </span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
 
           {aiResult && (
-            <div className="result-box">
-              <h3>AI Bespaaradvies</h3>
-              <ul>
-                {aiResult.insights?.map((tip, idx) => (
-                  <li key={idx}>{tip}</li>
+            <div className="result-card">
+              <h3>AI Savings Advice</h3>
+
+              {budgetStatus && (
+                <div
+                  className={`budget-status ${
+                    budgetStatus.withinBudget ? "good" : "bad"
+                  }`}
+                >
+                  {budgetStatus.withinBudget ? (
+                    <>
+                      ✅ Binnen budget — verschil:{" "}
+                      <strong>{formatEuro(budgetStatus.difference)}</strong>
+                    </>
+                  ) : (
+                    <>
+                      ⚠️ Over budget — verschil:{" "}
+                      <strong>{formatEuro(Math.abs(budgetStatus.difference))}</strong>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <ul className="ai-list">
+                {(aiResult.insights || []).map((tip, index) => (
+                  <li key={index}>{tip}</li>
                 ))}
               </ul>
+            </div>
+          )}
 
-              {aiResult.budgetStatus && (
-                <p>
-                  <strong>Budget:</strong>{" "}
-                  {aiResult.budgetStatus.withinBudget
-                    ? `Binnen budget met €${aiResult.budgetStatus.difference}`
-                    : `Over budget met €${Math.abs(aiResult.budgetStatus.difference)}`}
-                </p>
+          <div className="chat-card">
+            <h3>AI Grocery Chat</h3>
+
+            <div className="chat-window">
+              {chatMessages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`chat-bubble ${
+                    msg.role === "user" ? "user" : "assistant"
+                  }`}
+                >
+                  {msg.content}
+                </div>
+              ))}
+
+              {loadingChat && (
+                <div className="chat-bubble assistant">AI is aan het typen...</div>
               )}
             </div>
-          )}
+
+            <div className="chat-input-row">
+              <input
+                type="text"
+                placeholder="Vraag bv: Hoe kan ik goedkoper boodschappen doen?"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") sendChat();
+                }}
+              />
+              <button onClick={sendChat}>Send</button>
+            </div>
+          </div>
         </section>
       </div>
-
-      <section className="card chat-card">
-        <h2>AI Grocery Chat</h2>
-
-        <div className="chat-box">
-          {chatMessages.map((msg, index) => (
-            <div key={index} className={`chat-message ${msg.role}`}>
-              <strong>{msg.role === "user" ? "Jij" : "AI"}:</strong>{" "}
-              {msg.content}
-            </div>
-          ))}
-          {loadingChat && (
-            <div className="chat-message assistant">AI is aan het typen...</div>
-          )}
-        </div>
-
-        <div className="chat-input-row">
-          <input
-            type="text"
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Bijv. Hoe maak ik deze boodschappen goedkoper?"
-            onKeyDown={(e) => e.key === "Enter" && sendChat()}
-          />
-          <button onClick={sendChat}>Verstuur</button>
-        </div>
-      </section>
     </div>
   );
 }
