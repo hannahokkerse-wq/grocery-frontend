@@ -1,489 +1,582 @@
-import { useEffect, useMemo, useState } from "react";
-import "./style.css";
+:root {
+  --bg: #f5f7fb;
+  --panel: #ffffff;
+  --panel-soft: #f8fafc;
+  --border: #d8e1ee;
+  --border-strong: #c6d2e4;
+  --text: #1f2a44;
+  --muted: #64748b;
+  --primary: #2563eb;
+  --primary-soft: #eaf2ff;
+  --success: #16a34a;
+  --success-soft: #eafaf0;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --warning: #f59e0b;
+  --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  --radius-xl: 28px;
+  --radius-lg: 20px;
+  --radius-md: 14px;
+}
 
-const API_BASE = "https://grocery-discount-api.onrender.com";
+* {
+  box-sizing: border-box;
+}
 
-const STORE_META = {
-  all: { label: "Alle winkels", emoji: "🛒" },
-  ah: { label: "Albert Heijn", emoji: "🟦" },
-  jumbo: { label: "Jumbo", emoji: "🟨" },
-  lidl: { label: "Lidl", emoji: "🟦" },
-  aldi: { label: "Aldi", emoji: "🟦" },
-};
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background: linear-gradient(180deg, #f5f7fb 0%, #eef3fb 100%);
+  color: var(--text);
+}
 
-export default function App() {
-  const [products, setProducts] = useState([]);
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [basketResult, setBasketResult] = useState(null);
-  const [aiResult, setAiResult] = useState(null);
-  const [budget, setBudget] = useState("");
-  const [chatInput, setChatInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeStore, setActiveStore] = useState("all");
+#root {
+  min-height: 100vh;
+}
 
-  const [loadingProducts, setLoadingProducts] = useState(false);
-  const [loadingBasket, setLoadingBasket] = useState(false);
-  const [loadingAI, setLoadingAI] = useState(false);
-  const [loadingChat, setLoadingChat] = useState(false);
+.app-shell {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 32px 24px 56px;
+}
 
-  const [chatMessages, setChatMessages] = useState([
-    {
-      role: "assistant",
-      content:
-        "Hoi 👋 Ik ben je Grocery Discount AI. Vraag me hoe je kunt besparen op je mandje.",
-    },
-  ]);
+.hero {
+  text-align: center;
+  margin-bottom: 28px;
+}
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+.hero-badge {
+  display: inline-block;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+}
 
-  async function fetchProducts(query = "") {
-    try {
-      setLoadingProducts(true);
-      const url = query
-        ? `${API_BASE}/products?q=${encodeURIComponent(query)}`
-        : `${API_BASE}/products`;
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
 
-      const res = await fetch(url);
-      const data = await res.json();
-      setProducts(data.products || []);
-    } catch (error) {
-      console.error("Fout bij ophalen producten:", error);
-    } finally {
-      setLoadingProducts(false);
-    }
+.hero p {
+  margin: 14px auto 0;
+  max-width: 780px;
+  font-size: 1.08rem;
+  color: var(--muted);
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(216, 225, 238, 0.9);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow);
+  padding: 26px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.panel-header h2 {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: -0.03em;
+}
+
+.panel-subtitle {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.96rem;
+}
+
+.product-counter {
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  color: var(--primary);
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.search-row {
+  margin-bottom: 14px;
+}
+
+.search-input,
+.budget-box input,
+.chat-input-row input {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  color: var(--text);
+  border-radius: 16px;
+  padding: 15px 16px;
+  font-size: 1rem;
+  outline: none;
+  transition: 0.2s ease;
+}
+
+.search-input:focus,
+.budget-box input:focus,
+.chat-input-row input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+}
+
+.store-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.store-tab {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.store-tab:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.store-tab.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+}
+
+.product-card {
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: 22px;
+  padding: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 215px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.product-card:hover {
+  transform: translateY(-3px);
+  border-color: #9db8ff;
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.08);
+}
+
+.product-card.selected {
+  border-color: var(--primary);
+  background: linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.12);
+}
+
+.product-top {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.product-card h3 {
+  margin: 0;
+  font-size: 1.12rem;
+  line-height: 1.25;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.category {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.price-line {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.price-label {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.price-line strong {
+  font-size: 1.65rem;
+  color: var(--text);
+}
+
+.mini-price-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+
+.product-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.tag-badge.bonus {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.tag-badge.actie {
+  background: #ecfeff;
+  color: #0f766e;
+}
+
+.tag-badge.populair {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.tag-badge.gezond {
+  background: #ecfdf5;
+  color: #15803d;
+}
+
+.tag-badge.vers {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.action-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+
+.primary-btn,
+.secondary-btn,
+.chat-input-row button {
+  border: none;
+  border-radius: 16px;
+  padding: 14px 18px;
+  font-weight: 800;
+  font-size: 0.98rem;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.primary-btn,
+.chat-input-row button {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22);
+}
+
+.primary-btn:hover,
+.chat-input-row button:hover {
+  transform: translateY(-2px);
+}
+
+.secondary-btn {
+  background: #e2e8f0;
+  color: var(--text);
+}
+
+.secondary-btn:hover {
+  background: #d8e1ee;
+}
+
+.primary-btn:disabled,
+.secondary-btn:disabled,
+.chat-input-row button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.budget-box {
+  margin-top: 22px;
+}
+
+.budget-box label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.empty-text,
+.loading-text {
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.selected-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.selected-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+
+.selected-item strong {
+  display: block;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.selected-item p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.result-card,
+.chat-card {
+  margin-top: 22px;
+  background: linear-gradient(180deg, #f9fbff 0%, #f4f7fc 100%);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 22px;
+}
+
+.result-card h3,
+.chat-card h3 {
+  margin: 0 0 18px;
+  font-size: 1.65rem;
+  letter-spacing: -0.03em;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.summary-pill {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.summary-pill span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin-bottom: 8px;
+}
+
+.summary-pill strong {
+  display: block;
+  font-size: 1.08rem;
+  color: var(--text);
+}
+
+.summary-pill small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.summary-pill.savings strong {
+  color: var(--success);
+}
+
+.plan-list h4 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.plan-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e6edf7;
+  font-size: 0.96rem;
+}
+
+.plan-item:last-child {
+  border-bottom: none;
+}
+
+.ai-list {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text);
+}
+
+.ai-list li {
+  margin-bottom: 12px;
+  line-height: 1.65;
+}
+
+.budget-status {
+  padding: 14px 16px;
+  border-radius: 16px;
+  font-weight: 800;
+  margin-bottom: 18px;
+}
+
+.budget-status.good {
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid #b7ebc8;
+}
+
+.budget-status.bad {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid #fecaca;
+}
+
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 6px;
+  margin-bottom: 14px;
+}
+
+.chat-bubble {
+  max-width: 85%;
+  padding: 14px 16px;
+  border-radius: 20px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  font-size: 0.96rem;
+}
+
+.chat-bubble.user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+  border-bottom-right-radius: 8px;
+}
+
+.chat-bubble.assistant {
+  align-self: flex-start;
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-bottom-left-radius: 8px;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 10px;
+}
+
+.chat-input-row button {
+  min-width: 96px;
+}
+
+@media (max-width: 1180px) {
+  .main-grid {
+    grid-template-columns: 1fr;
   }
 
-  function toggleProduct(productId) {
-    setSelectedIds((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
-    );
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 18px 14px 40px;
   }
 
-  async function optimizeBasket() {
-    try {
-      setLoadingBasket(true);
-      const res = await fetch(`${API_BASE}/basket/optimize`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          product_ids: selectedIds,
-          location: "Amsterdam",
-        }),
-      });
-
-      const data = await res.json();
-      setBasketResult(data);
-    } catch (error) {
-      console.error("Fout bij basket optimize:", error);
-    } finally {
-      setLoadingBasket(false);
-    }
+  .panel {
+    padding: 18px;
+    border-radius: 22px;
   }
 
-  async function getAiTips() {
-    try {
-      setLoadingAI(true);
-      const res = await fetch(`${API_BASE}/ai/recommend`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          product_ids: selectedIds,
-          budget: budget ? Number(budget) : null,
-          location: "Amsterdam",
-        }),
-      });
-
-      const data = await res.json();
-      setAiResult(data);
-    } catch (error) {
-      console.error("Fout bij AI tips:", error);
-    } finally {
-      setLoadingAI(false);
-    }
+  .panel-header {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  async function sendChat() {
-    if (!chatInput.trim()) return;
-
-    const userMessage = { role: "user", content: chatInput };
-    setChatMessages((prev) => [...prev, userMessage]);
-    setChatInput("");
-
-    try {
-      setLoadingChat(true);
-
-      const res = await fetch(`${API_BASE}/ai/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          session_id: "frontend-session",
-          message: chatInput,
-          product_ids: selectedIds,
-        }),
-      });
-
-      const data = await res.json();
-
-      let replyText = "";
-
-      if (data.reply) {
-        replyText = data.reply;
-      } else if (data.fallback && Array.isArray(data.fallback)) {
-        replyText = data.fallback.join("\n");
-      } else {
-        replyText = "Geen antwoord ontvangen.";
-      }
-
-      setChatMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: replyText },
-      ]);
-    } catch (error) {
-      console.error("Fout bij AI chat:", error);
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Er ging iets mis met de chat. Probeer opnieuw.",
-        },
-      ]);
-    } finally {
-      setLoadingChat(false);
-    }
+  .products-grid {
+    grid-template-columns: 1fr;
   }
 
-  const selectedProducts = useMemo(() => {
-    return products.filter((p) => selectedIds.includes(p.id));
-  }, [products, selectedIds]);
-
-  const filteredProducts = useMemo(() => {
-    let filtered = products.filter((product) => {
-      const q = searchQuery.toLowerCase();
-      return (
-        product.name.toLowerCase().includes(q) ||
-        product.category.toLowerCase().includes(q) ||
-        (product.tags || []).some((tag) => tag.toLowerCase().includes(q))
-      );
-    });
-
-    if (activeStore !== "all") {
-      filtered = filtered.filter(
-        (product) => product.prices && product.prices[activeStore] !== undefined
-      );
-    }
-
-    return filtered;
-  }, [products, searchQuery, activeStore]);
-
-  function getLowestPrice(product) {
-    if (!product.prices) return null;
-    return Math.min(...Object.values(product.prices));
+  .chat-input-row {
+    flex-direction: column;
   }
 
-  function getStorePrice(product, storeId) {
-    if (!product.prices) return null;
-    return product.prices[storeId];
+  .chat-input-row button {
+    width: 100%;
   }
 
-  function formatEuro(value) {
-    if (value === null || value === undefined) return "-";
-    return `€${Number(value).toFixed(2)}`;
+  .action-row {
+    flex-direction: column;
   }
 
-  function renderTagBadge(tag) {
-    const lower = tag.toLowerCase();
-
-    if (lower.includes("bonus")) {
-      return <span className="tag-badge bonus">🔥 Bonus</span>;
-    }
-    if (lower.includes("actie")) {
-      return <span className="tag-badge actie">💸 Actie</span>;
-    }
-    if (lower.includes("populair")) {
-      return <span className="tag-badge populair">⭐ Populair</span>;
-    }
-    if (lower.includes("gezond")) {
-      return <span className="tag-badge gezond">🥗 Gezond</span>;
-    }
-    if (lower.includes("vers")) {
-      return <span className="tag-badge vers">🍎 Vers</span>;
-    }
-    return <span className="tag-badge">{tag}</span>;
+  .primary-btn,
+  .secondary-btn {
+    width: 100%;
   }
 
-  const budgetStatus = aiResult?.budgetStatus;
-
-  return (
-    <div className="app-shell">
-      <header className="hero">
-        <div className="hero-badge">🛒 Smart Grocery Savings</div>
-        <h1>Grocery Discount AI</h1>
-        <p>
-          Vergelijk supermarktprijzen, optimaliseer je mandje en krijg slimme
-          AI-bespaartips.
-        </p>
-      </header>
-
-      <div className="main-grid">
-        <section className="panel left-panel">
-          <div className="panel-header">
-            <div>
-              <h2>Select Grocery Items</h2>
-              <p className="panel-subtitle">
-                Kies producten en vergelijk direct prijzen tussen winkels.
-              </p>
-            </div>
-            <div className="product-counter">
-              {selectedIds.length} geselecteerd
-            </div>
-          </div>
-
-          <div className="search-row">
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Zoek producten (bijv. melk, rijst, yoghurt...)"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                fetchProducts(e.target.value);
-              }}
-            />
-          </div>
-
-          <div className="store-tabs">
-            {Object.entries(STORE_META).map(([storeId, store]) => (
-              <button
-                key={storeId}
-                className={`store-tab ${
-                  activeStore === storeId ? "active" : ""
-                }`}
-                onClick={() => setActiveStore(storeId)}
-              >
-                <span>{store.emoji}</span> {store.label}
-              </button>
-            ))}
-          </div>
-
-          {loadingProducts ? (
-            <p className="loading-text">Producten laden...</p>
-          ) : (
-            <div className="products-grid">
-              {filteredProducts.map((product) => {
-                const selected = selectedIds.includes(product.id);
-                const displayPrice =
-                  activeStore === "all"
-                    ? getLowestPrice(product)
-                    : getStorePrice(product, activeStore);
-
-                return (
-                  <div
-                    key={product.id}
-                    className={`product-card ${selected ? "selected" : ""}`}
-                    onClick={() => toggleProduct(product.id)}
-                  >
-                    <div className="product-top">
-                      <h3>{product.name}</h3>
-                      <div className="product-tags">
-                        {(product.tags || []).slice(0, 2).map((tag) => (
-                          <span key={tag}>{renderTagBadge(tag)}</span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <p className="category">{product.category}</p>
-
-                    <div className="price-line">
-                      <span className="price-label">
-                        {activeStore === "all" ? "Vanaf" : "Prijs"}
-                      </span>
-                      <strong>{formatEuro(displayPrice)}</strong>
-                    </div>
-
-                    <div className="mini-price-row">
-                      <span>AH {formatEuro(product.prices?.ah)}</span>
-                      <span>Jumbo {formatEuro(product.prices?.jumbo)}</span>
-                      <span>Lidl {formatEuro(product.prices?.lidl)}</span>
-                      <span>Aldi {formatEuro(product.prices?.aldi)}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="action-row">
-            <button
-              className="primary-btn"
-              onClick={optimizeBasket}
-              disabled={!selectedIds.length || loadingBasket}
-            >
-              {loadingBasket ? "Bezig..." : "Optimize Basket"}
-            </button>
-
-            <button
-              className="secondary-btn"
-              onClick={getAiTips}
-              disabled={!selectedIds.length || loadingAI}
-            >
-              {loadingAI ? "Bezig..." : "Get AI Savings Tips"}
-            </button>
-          </div>
-
-          <div className="budget-box">
-            <label>Optional budget (€)</label>
-            <input
-              type="number"
-              placeholder="bijv. 20"
-              value={budget}
-              onChange={(e) => setBudget(e.target.value)}
-            />
-          </div>
-        </section>
-
-        <section className="panel right-panel">
-          <div className="panel-header">
-            <div>
-              <h2>Selected Basket</h2>
-              <p className="panel-subtitle">
-                Jouw gekozen producten en slimme aanbevelingen.
-              </p>
-            </div>
-          </div>
-
-          {selectedProducts.length === 0 ? (
-            <p className="empty-text">Nog geen producten geselecteerd.</p>
-          ) : (
-            <div className="selected-list">
-              {selectedProducts.map((product) => (
-                <div key={product.id} className="selected-item">
-                  <div>
-                    <strong>{product.name}</strong>
-                    <p>{product.category}</p>
-                  </div>
-                  <span>{formatEuro(getLowestPrice(product))}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {basketResult?.basket && (
-            <div className="result-card">
-              <h3>Basket Optimization</h3>
-
-              <div className="summary-grid">
-                <div className="summary-pill">
-                  <span>Beste winkel</span>
-                  <strong>{basketResult.basket.singleStoreBest?.name}</strong>
-                  <small>
-                    {formatEuro(basketResult.basket.singleStoreBest?.total)}
-                  </small>
-                </div>
-
-                <div className="summary-pill">
-                  <span>Split totaal</span>
-                  <strong>{formatEuro(basketResult.basket.splitTotal)}</strong>
-                </div>
-
-                <div className="summary-pill savings">
-                  <span>Besparing</span>
-                  <strong>
-                    {formatEuro(basketResult.basket.savingsVsSingleStore)}
-                  </strong>
-                </div>
-              </div>
-
-              <div className="plan-list">
-                <h4>Beste split plan</h4>
-                {basketResult.basket.splitPlan.map((item, index) => (
-                  <div key={index} className="plan-item">
-                    <span>{item.item}</span>
-                    <span>
-                      {item.storeId.toUpperCase()} • {formatEuro(item.price)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {aiResult && (
-            <div className="result-card">
-              <h3>AI Savings Advice</h3>
-
-              {budgetStatus && (
-                <div
-                  className={`budget-status ${
-                    budgetStatus.withinBudget ? "good" : "bad"
-                  }`}
-                >
-                  {budgetStatus.withinBudget ? (
-                    <>
-                      ✅ Binnen budget — verschil:{" "}
-                      <strong>{formatEuro(budgetStatus.difference)}</strong>
-                    </>
-                  ) : (
-                    <>
-                      ⚠️ Over budget — verschil:{" "}
-                      <strong>{formatEuro(Math.abs(budgetStatus.difference))}</strong>
-                    </>
-                  )}
-                </div>
-              )}
-
-              <ul className="ai-list">
-                {(aiResult.insights || []).map((tip, index) => (
-                  <li key={index}>{tip}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div className="chat-card">
-            <h3>AI Grocery Chat</h3>
-
-            <div className="chat-window">
-              {chatMessages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`chat-bubble ${
-                    msg.role === "user" ? "user" : "assistant"
-                  }`}
-                >
-                  {msg.content}
-                </div>
-              ))}
-
-              {loadingChat && (
-                <div className="chat-bubble assistant">AI is aan het typen...</div>
-              )}
-            </div>
-
-            <div className="chat-input-row">
-              <input
-                type="text"
-                placeholder="Vraag bv: Hoe kan ik goedkoper boodschappen doen?"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") sendChat();
-                }}
-              />
-              <button onClick={sendChat}>Send</button>
-            </div>
-          </div>
-        </section>
-      </div>
-    </div>
-  );
+  .product-card {
+    min-height: auto;
+  }
 }
