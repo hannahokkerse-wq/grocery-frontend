@@ -267,17 +267,15 @@ body {
   border-color: var(--primary);
 }
 
-.store-logo {
+.store-logo,
+.best-store-logo,
+.plan-store-logo {
   width: 18px;
   height: 18px;
   object-fit: contain;
   border-radius: 4px;
   background: white;
   padding: 1px;
-}
-
-.store-emoji {
-  font-size: 16px;
 }
 
 .products-grid {
@@ -292,7 +290,7 @@ body {
   border-radius: 22px;
   padding: 18px;
   transition: all 0.2s ease;
-  min-height: 250px;
+  min-height: 320px;
   position: relative;
 }
 
@@ -341,10 +339,6 @@ body {
   z-index: 2;
 }
 
-.favorite-btn.active {
-  transform: scale(1.08);
-}
-
 .product-top {
   display: flex;
   flex-direction: column;
@@ -384,6 +378,37 @@ body {
   color: var(--text);
 }
 
+.score-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.score-pill {
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.score-pill.quality {
+  background: #ecfdf5;
+  color: #15803d;
+}
+
+.score-pill.value {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.review-label {
+  margin-top: 10px;
+  font-size: 0.84rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .best-store-chip {
   margin-top: 12px;
   display: inline-flex;
@@ -395,15 +420,6 @@ body {
   border-radius: 999px;
   font-size: 0.82rem;
   color: var(--muted);
-}
-
-.best-store-logo {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-  border-radius: 4px;
-  background: white;
-  padding: 1px;
 }
 
 .mini-price-row {
@@ -485,19 +501,10 @@ body {
   box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22);
 }
 
-.primary-btn:hover,
-.chat-input-row button:hover {
-  transform: translateY(-2px);
-}
-
 .secondary-btn {
   background: var(--panel-soft);
   color: var(--text);
   border: 1px solid var(--border);
-}
-
-.secondary-btn:hover {
-  background: var(--primary-soft);
 }
 
 .ghost-btn {
@@ -510,15 +517,6 @@ body {
   color: var(--danger);
   border-color: #fecaca;
   background: var(--danger-soft);
-}
-
-.primary-btn:disabled,
-.secondary-btn:disabled,
-.ghost-btn:disabled,
-.chat-input-row button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
 }
 
 .saved-message {
@@ -570,7 +568,8 @@ body {
   color: var(--text);
 }
 
-.selected-item p {
+.selected-item p,
+.selected-item small {
   margin: 6px 0 0;
   color: var(--muted);
   font-size: 0.9rem;
@@ -697,15 +696,6 @@ body {
   gap: 8px;
 }
 
-.plan-store-logo {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-  border-radius: 4px;
-  background: white;
-  padding: 1px;
-}
-
 .ai-list {
   margin: 0;
   padding-left: 20px;
@@ -821,18 +811,15 @@ body {
     flex-direction: column;
   }
 
-  .chat-input-row button {
+  .chat-input-row button,
+  .primary-btn,
+  .secondary-btn,
+  .ghost-btn {
     width: 100%;
   }
 
   .action-row {
     flex-direction: column;
-  }
-
-  .primary-btn,
-  .secondary-btn,
-  .ghost-btn {
-    width: 100%;
   }
 
   .product-card {

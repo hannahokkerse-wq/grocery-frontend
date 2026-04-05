@@ -43,7 +43,7 @@ export default function App() {
     {
       role: "assistant",
       content:
-        "Hoi 👋 Ik ben je Grocery Discount AI. Ik help je slimmer en goedkoper boodschappen doen.",
+        "Hoi 👋 Ik ben je Grocery Discount AI. Ik help je besparen, maar ook slim kiezen op kwaliteit.",
     },
   ]);
 
@@ -250,7 +250,9 @@ export default function App() {
       const matchesQuery =
         product.name.toLowerCase().includes(q) ||
         product.category.toLowerCase().includes(q) ||
-        (product.tags || []).some((tag) => tag.toLowerCase().includes(q));
+        (product.tags || []).some((tag) => tag.toLowerCase().includes(q)) ||
+        (product.reviewLabel || "").toLowerCase().includes(q) ||
+        (product.brandType || "").toLowerCase().includes(q);
 
       const matchesStore =
         activeStore === "all"
@@ -275,6 +277,10 @@ export default function App() {
         const bFav = favorites.includes(b.id) ? 1 : 0;
         return bFav - aFav;
       });
+    } else if (sortMode === "quality-desc") {
+      filtered.sort((a, b) => (b.qualityScore || 0) - (a.qualityScore || 0));
+    } else if (sortMode === "value-desc") {
+      filtered.sort((a, b) => (b.valueScore || 0) - (a.valueScore || 0));
     }
 
     return filtered;
@@ -286,10 +292,8 @@ export default function App() {
   }
 
   function getCheapestStore(product) {
-    if (!product.prices) return null;
-    const entry = Object.entries(product.prices).sort((a, b) => a[1] - b[1])[0];
-    return entry ? entry[0] : null;
-  }
+  return product.cheapestOption?.storeId || null;
+}
 
   function getStorePrice(product, storeId) {
     if (!product.prices) return null;
@@ -322,6 +326,13 @@ export default function App() {
     return <span className="tag-badge">{tag}</span>;
   }
 
+  function qualityLabel(score) {
+    if (score >= 8.5) return "Topkwaliteit";
+    if (score >= 7.5) return "Goede kwaliteit";
+    if (score >= 6.5) return "Redelijk";
+    return "Basisniveau";
+  }
+
   const budgetStatus = aiResult?.budgetStatus;
   const selectedLowestTotal = selectedProducts.reduce(
     (sum, p) => sum + (getLowestPrice(p) || 0),
@@ -344,7 +355,7 @@ export default function App() {
     <div className="app-shell">
       <header className="hero">
         <div className="hero-topbar">
-          <div className="hero-badge">🛒 Smart Grocery Savings</div>
+          <div className="hero-badge">🛒 Smart Grocery Savings + Quality</div>
           <button
             className="mode-toggle"
             onClick={() => setDarkMode((prev) => !prev)}
@@ -355,8 +366,7 @@ export default function App() {
 
         <h1>Grocery Discount AI</h1>
         <p>
-          Vergelijk supermarktprijzen, optimaliseer je mandje en krijg slimme
-          AI-bespaartips.
+          Vergelijk supermarktprijzen, kwaliteit en prijs-kwaliteit in één overzicht.
         </p>
 
         <div className="top-stats">
@@ -385,7 +395,7 @@ export default function App() {
             <div>
               <h2>Select Grocery Items</h2>
               <p className="panel-subtitle">
-                Kies producten en vergelijk direct prijzen tussen winkels.
+                Kies producten op prijs, kwaliteit en prijs-kwaliteit.
               </p>
             </div>
             <div className="product-counter">
@@ -397,7 +407,7 @@ export default function App() {
             <input
               type="text"
               className="search-input"
-              placeholder="Zoek producten (bijv. melk, rijst, yoghurt...)"
+              placeholder="Zoek producten, reviews of brand type..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -419,11 +429,7 @@ export default function App() {
                     onClick={() => setActiveStore(storeId)}
                   >
                     {store.logo ? (
-                      <img
-                        src={store.logo}
-                        alt={store.label}
-                        className="store-logo"
-                      />
+                      <img src={store.logo} alt={store.label} className="store-logo" />
                     ) : (
                       <span className="store-emoji">🛒</span>
                     )}
@@ -458,6 +464,8 @@ export default function App() {
                   <option value="price-desc">Duurste eerst</option>
                   <option value="name-asc">Naam A-Z</option>
                   <option value="favorites">Favorieten eerst</option>
+                  <option value="quality-desc">Beste kwaliteit</option>
+                  <option value="value-desc">Beste prijs-kwaliteit</option>
                 </select>
               </div>
             </div>
@@ -473,7 +481,7 @@ export default function App() {
                   activeStore === "all"
                     ? getLowestPrice(product)
                     : getStorePrice(product, activeStore);
-                const cheapestStore = getCheapestStore(product);
+                const cheapestStore = product.cheapestOption?.storeId;
                 const isFavorite = favorites.includes(product.id);
 
                 return (
@@ -513,6 +521,19 @@ export default function App() {
                           {activeStore === "all" ? "Vanaf" : "Prijs"}
                         </span>
                         <strong>{formatEuro(displayPrice)}</strong>
+                      </div>
+
+                      <div className="score-row">
+                        <div className="score-pill quality">
+                          Kwaliteit: <strong>{product.qualityScore}/10</strong>
+                        </div>
+                        <div className="score-pill value">
+                          Waarde: <strong>{product.valueScore}/10</strong>
+                        </div>
+                      </div>
+
+                      <div className="review-label">
+                        {qualityLabel(product.qualityScore)} • {product.reviewLabel}
                       </div>
 
                       <div className="best-store-chip">
@@ -590,7 +611,7 @@ export default function App() {
             <div>
               <h2>Selected Basket</h2>
               <p className="panel-subtitle">
-                Jouw gekozen producten en slimme aanbevelingen.
+                Gekozen producten inclusief kwaliteitsscore en waarde.
               </p>
             </div>
           </div>
@@ -604,6 +625,9 @@ export default function App() {
                   <div>
                     <strong>{product.name}</strong>
                     <p>{product.category}</p>
+                    <small>
+                      Kwaliteit {product.qualityScore}/10 • Waarde {product.valueScore}/10
+                    </small>
                   </div>
                   <div className="selected-meta">
                     <span>{formatEuro(getLowestPrice(product))}</span>
@@ -630,15 +654,13 @@ export default function App() {
                 </div>
 
                 <div className="summary-pill">
-                  <span>Split totaal</span>
-                  <strong>{formatEuro(basketResult.basket.splitTotal)}</strong>
+                  <span>Gem. kwaliteit</span>
+                  <strong>{basketResult.basket.averageQualityScore}/10</strong>
                 </div>
 
                 <div className="summary-pill savings">
-                  <span>Besparing</span>
-                  <strong>
-                    {formatEuro(basketResult.basket.savingsVsSingleStore)}
-                  </strong>
+                  <span>Gem. waarde</span>
+                  <strong>{basketResult.basket.averageValueScore}/10</strong>
                 </div>
               </div>
 
@@ -734,7 +756,7 @@ export default function App() {
             <div className="chat-input-row">
               <input
                 type="text"
-                placeholder="Vraag bv: Hoe kan ik goedkoper boodschappen doen?"
+                placeholder="Vraag bv: Welke keuze is goedkoop én goed?"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => {
