@@ -633,36 +633,50 @@ export default function App() {
             <p className="empty-text">Nog geen producten geselecteerd.</p>
           ) : (
             <div className="selected-list">
-              {{selectedProducts.map((product) => {
-  const cheapestStoreId = product.cheapestOption?.storeId;
+              {selectedProducts.map((product) => {
+                const cheapestStoreId = product.cheapestOption?.storeId;
+                const cheapestStoreName =
+                  product.cheapestOption?.storeName ||
+                  getStoreName(cheapestStoreId);
 
-  return (
-    <div key={product.id} className="selected-item">
-      <div className="selected-item-info">
-        <strong>{product.name}</strong>
-        <p>{product.category}</p>
+                return (
+                  <div key={product.id} className="selected-item">
+                    <div className="selected-item-info">
+                      <strong>{product.name}</strong>
+                      <p>{product.category}</p>
+                      <small>
+                        Kwaliteit {product.qualityScore}/10 • Waarde{" "}
+                        {product.valueScore}/10
+                      </small>
 
-        <small>
-          Kwaliteit {product.qualityScore}/10 • Waarde {product.valueScore}/10
-        </small>
+                      {cheapestStoreId && (
+                        <div className="selected-store-chip">
+                          {STORE_META[cheapestStoreId]?.logo && (
+                            <img
+                              src={STORE_META[cheapestStoreId].logo}
+                              alt={STORE_META[cheapestStoreId].label}
+                              className="best-store-logo"
+                            />
+                          )}
+                          <span>
+                            Beste deal bij: <strong>{cheapestStoreName}</strong>
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-        {/* 👉 DIT IS DE BELANGRIJKE TOEVOEGING */}
-        {cheapestStoreId && (
-          <div className="selected-store-chip">
-            Beste deal bij:{" "}
-            <strong>
-              {STORE_META[cheapestStoreId]?.short || cheapestStoreId}
-            </strong>
-          </div>
-        )}
-      </div>
+                    <div className="selected-meta">
+                      <span>{formatEuro(getLowestPrice(product))}</span>
+                      {favorites.includes(product.id) && (
+                        <span className="fav-chip">Favoriet</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
-      <div className="selected-meta">
-        <span>{formatEuro(getLowestPrice(product))}</span>
-      </div>
-    </div>
-  );
-})}
           {basketResult?.basket && (
             <div className="result-card">
               <h3>Basket Optimization</h3>
