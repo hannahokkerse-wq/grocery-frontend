@@ -58,7 +58,9 @@ export default function App() {
 
   useEffect(() => {
     try {
-      const storedFavorites = JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]");
+      const storedFavorites = JSON.parse(
+        localStorage.getItem(FAVORITES_KEY) || "[]"
+      );
       setFavorites(Array.isArray(storedFavorites) ? storedFavorites : []);
     } catch {
       setFavorites([]);
@@ -333,6 +335,11 @@ export default function App() {
     return "Basisniveau";
   }
 
+  function getStoreName(storeId) {
+    if (!storeId) return "";
+    return STORE_META[storeId]?.label || storeId;
+  }
+
   const budgetStatus = aiResult?.budgetStatus;
   const selectedLowestTotal = selectedProducts.reduce(
     (sum, p) => sum + (getLowestPrice(p) || 0),
@@ -350,25 +357,7 @@ export default function App() {
           )
         )
       : 0;
-const getStoreName = (storeId) => {
-  const store = stores.find((s) => s.id === storeId);
-  return store ? store.name : storeId;
-};
 
-const getStoreIcon = (storeId) => {
-  switch (storeId) {
-    case "ah":
-      return "🛒";
-    case "jumbo":
-      return "🟡";
-    case "lidl":
-      return "🟦";
-    case "aldi":
-      return "🏷️";
-    default:
-      return "🏪";
-  }
-};
   return (
     <div className="app-shell">
       <header className="hero">
@@ -384,7 +373,8 @@ const getStoreIcon = (storeId) => {
 
         <h1>Grocery Discount AI</h1>
         <p>
-          Vergelijk supermarktprijzen, kwaliteit en prijs-kwaliteit in één overzicht.
+          Vergelijk supermarktprijzen, kwaliteit en prijs-kwaliteit in één
+          overzicht.
         </p>
 
         <div className="top-stats">
@@ -447,7 +437,11 @@ const getStoreIcon = (storeId) => {
                     onClick={() => setActiveStore(storeId)}
                   >
                     {store.logo ? (
-                      <img src={store.logo} alt={store.label} className="store-logo" />
+                      <img
+                        src={store.logo}
+                        alt={store.label}
+                        className="store-logo"
+                      />
                     ) : (
                       <span className="store-emoji">🛒</span>
                     )}
@@ -551,7 +545,8 @@ const getStoreIcon = (storeId) => {
                       </div>
 
                       <div className="review-label">
-                        {qualityLabel(product.qualityScore)} • {product.reviewLabel}
+                        {qualityLabel(product.qualityScore)} •{" "}
+                        {product.reviewLabel}
                       </div>
 
                       <div className="best-store-chip">
@@ -639,36 +634,47 @@ const getStoreIcon = (storeId) => {
           ) : (
             <div className="selected-list">
               {selectedProducts.map((product) => {
-  const cheapestStoreId = product.cheapestOption?.storeId;
-  const cheapestStoreName =
-    product.cheapestOption?.storeName || getStoreName(cheapestStoreId);
+                const cheapestStoreId = product.cheapestOption?.storeId;
+                const cheapestStoreName =
+                  product.cheapestOption?.storeName ||
+                  getStoreName(cheapestStoreId);
 
-  return (
-    <div key={product.id} className="selected-item">
-      <div className="selected-item-info">
-        <strong>{product.name}</strong>
-        <p>{product.category}</p>
-        <small>
-          Kwaliteit {product.qualityScore}/10 • Waarde {product.valueScore}/10
-        </small>
+                return (
+                  <div key={product.id} className="selected-item">
+                    <div className="selected-item-info">
+                      <strong>{product.name}</strong>
+                      <p>{product.category}</p>
+                      <small>
+                        Kwaliteit {product.qualityScore}/10 • Waarde{" "}
+                        {product.valueScore}/10
+                      </small>
 
-        {cheapestStoreName && (
-          <div className="selected-store-chip">
-            Beste deal bij: <strong>{cheapestStoreName}</strong>
-          </div>
-        )}
-      </div>
+                      {cheapestStoreId && (
+                        <div className="selected-store-chip">
+                          {STORE_META[cheapestStoreId]?.logo && (
+                            <img
+                              src={STORE_META[cheapestStoreId].logo}
+                              alt={STORE_META[cheapestStoreId].label}
+                              className="best-store-logo"
+                            />
+                          )}
+                          <span>
+                            Beste deal bij: <strong>{cheapestStoreName}</strong>
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-      <div className="selected-meta">
-        <span>{formatEuro(getLowestPrice(product))}</span>
-        {favorites.includes(product.id) && (
-          <span className="fav-chip">Favoriet</span>
-        )}
-      </div>
-    </div>
-  );
-})}
-         </div>
+                    <div className="selected-meta">
+                      <span>{formatEuro(getLowestPrice(product))}</span>
+                      {favorites.includes(product.id) && (
+                        <span className="fav-chip">Favoriet</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
 
           {basketResult?.basket && (
@@ -746,7 +752,9 @@ const getStoreIcon = (storeId) => {
                   ) : (
                     <>
                       ⚠️ Over budget — verschil:{" "}
-                      <strong>{formatEuro(Math.abs(budgetStatus.difference))}</strong>
+                      <strong>
+                        {formatEuro(Math.abs(budgetStatus.difference))}
+                      </strong>
                     </>
                   )}
                 </div>
@@ -759,7 +767,8 @@ const getStoreIcon = (storeId) => {
               </ul>
 
               <div className="mini-insight">
-                Mogelijke besparing nu: <strong>{formatEuro(possibleSavings)}</strong>
+                Mogelijke besparing nu:{" "}
+                <strong>{formatEuro(possibleSavings)}</strong>
               </div>
             </div>
           )}
@@ -780,7 +789,9 @@ const getStoreIcon = (storeId) => {
               ))}
 
               {loadingChat && (
-                <div className="chat-bubble assistant">AI is aan het typen...</div>
+                <div className="chat-bubble assistant">
+                  AI is aan het typen...
+                </div>
               )}
             </div>
 
