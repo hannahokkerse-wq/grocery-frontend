@@ -830,3 +830,12 @@ body {
     padding-right: 90px;
   }
 }
+.selected-store-line {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.selected-store-line strong {
+  color: var(--text);
+}
