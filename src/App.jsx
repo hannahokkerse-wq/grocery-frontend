@@ -620,24 +620,34 @@ export default function App() {
             <p className="empty-text">Nog geen producten geselecteerd.</p>
           ) : (
             <div className="selected-list">
-              {selectedProducts.map((product) => (
-                <div key={product.id} className="selected-item">
-                  <div>
-                    <strong>{product.name}</strong>
-                    <p>{product.category}</p>
-                    <small>
-                      Kwaliteit {product.qualityScore}/10 • Waarde {product.valueScore}/10
-                    </small>
-                  </div>
-                  <div className="selected-meta">
-                    <span>{formatEuro(getLowestPrice(product))}</span>
-                    {favorites.includes(product.id) && (
-                      <span className="fav-chip">Favoriet</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+              {selectedProducts.map((product) => {
+  const cheapestStoreId = product.cheapestOption?.storeId;
+  const cheapestStoreName = product.cheapestOption?.storeName;
+
+  return (
+    <div key={product.id} className="selected-item">
+      <div>
+        <strong>{product.name}</strong>
+        <p>{product.category}</p>
+        <small>
+          Kwaliteit {product.qualityScore}/10 • Waarde {product.valueScore}/10
+        </small>
+        <div className="selected-store-line">
+          Beste deal bij:{" "}
+          <strong>{cheapestStoreName || cheapestStoreId || "Onbekend"}</strong>
+        </div>
+      </div>
+
+      <div className="selected-meta">
+        <span>{formatEuro(getLowestPrice(product))}</span>
+        {favorites.includes(product.id) && (
+          <span className="fav-chip">Favoriet</span>
+        )}
+      </div>
+    </div>
+  );
+})}
+         </div>
           )}
 
           {basketResult?.basket && (
