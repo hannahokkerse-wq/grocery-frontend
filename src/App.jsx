@@ -622,19 +622,21 @@ export default function App() {
             <div className="selected-list">
               {selectedProducts.map((product) => {
   const cheapestStoreId = product.cheapestOption?.storeId;
-  const cheapestStoreName = product.cheapestOption?.storeName;
+  const cheapestStoreName = product.cheapestOption?.storeName || getStoreName(cheapestStoreId);
 
   return (
     <div key={product.id} className="selected-item">
-      <div>
+      <div className="selected-item-info">
         <strong>{product.name}</strong>
         <p>{product.category}</p>
+
         <small>
           Kwaliteit {product.qualityScore}/10 • Waarde {product.valueScore}/10
         </small>
-        <div className="selected-store-line">
-          Beste deal bij:{" "}
-          <strong>{cheapestStoreName || cheapestStoreId || "Onbekend"}</strong>
+
+        <div className="selected-store-chip">
+          <span>{getStoreIcon(cheapestStoreId)}</span>
+          <span>Beste deal bij: <strong>{cheapestStoreName || "Onbekend"}</strong></span>
         </div>
       </div>
 
