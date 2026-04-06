@@ -350,7 +350,25 @@ export default function App() {
           )
         )
       : 0;
+const getStoreName = (storeId) => {
+  const store = stores.find((s) => s.id === storeId);
+  return store ? store.name : storeId;
+};
 
+const getStoreIcon = (storeId) => {
+  switch (storeId) {
+    case "ah":
+      return "🛒";
+    case "jumbo":
+      return "🟡";
+    case "lidl":
+      return "🟦";
+    case "aldi":
+      return "🏷️";
+    default:
+      return "🏪";
+  }
+};
   return (
     <div className="app-shell">
       <header className="hero">
