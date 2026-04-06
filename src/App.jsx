@@ -292,8 +292,8 @@ export default function App() {
   }
 
   function getCheapestStore(product) {
-  return product.cheapestOption?.storeId || null;
-}
+    return product.cheapestOption?.storeId || null;
+  }
 
   function getStorePrice(product, storeId) {
     if (!product.prices) return null;
@@ -481,7 +481,7 @@ export default function App() {
                   activeStore === "all"
                     ? getLowestPrice(product)
                     : getStorePrice(product, activeStore);
-                const cheapestStore = product.cheapestOption?.storeId;
+                const cheapestStore = getCheapestStore(product);
                 const isFavorite = favorites.includes(product.id);
 
                 return (
