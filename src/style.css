@@ -222,18 +222,19 @@ body {
   margin-bottom: 22px;
 }
 
-.toolbar-inline {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-}
-
+.toolbar-block label,
 .select-wrap label {
   display: block;
   margin-bottom: 8px;
   font-weight: 700;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.toolbar-inline {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
 }
 
 .store-tabs {
@@ -420,6 +421,7 @@ body {
   border-radius: 999px;
   font-size: 0.82rem;
   color: var(--muted);
+  flex-wrap: wrap;
 }
 
 .mini-price-row {
@@ -575,11 +577,31 @@ body {
   font-size: 0.9rem;
 }
 
+.selected-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .selected-meta {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 8px;
+}
+
+.selected-store-chip {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--text);
+  width: fit-content;
+  border: 1px solid var(--border);
 }
 
 .fav-chip {
@@ -696,17 +718,6 @@ body {
   gap: 8px;
 }
 
-.ai-list {
-  margin: 0;
-  padding-left: 20px;
-  color: var(--text);
-}
-
-.ai-list li {
-  margin-bottom: 12px;
-  line-height: 1.65;
-}
-
 .mini-insight {
   margin-top: 16px;
   padding: 12px 14px;
@@ -714,25 +725,6 @@ body {
   color: var(--primary);
   border-radius: 16px;
   font-weight: 700;
-}
-
-.budget-status {
-  padding: 14px 16px;
-  border-radius: 16px;
-  font-weight: 800;
-  margin-bottom: 18px;
-}
-
-.budget-status.good {
-  background: var(--success-soft);
-  color: var(--success);
-  border: 1px solid #b7ebc8;
-}
-
-.budget-status.bad {
-  background: var(--danger-soft);
-  color: var(--danger);
-  border: 1px solid #fecaca;
 }
 
 .chat-window {
@@ -829,31 +821,14 @@ body {
   .product-card h3 {
     padding-right: 90px;
   }
-}
-.selected-store-line {
-  margin-top: 8px;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
 
-.selected-store-line strong {
-  color: var(--text);
-}
-.selected-item-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+  .selected-item,
+  .plan-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 
-.selected-store-chip {
-  margin-top: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(59, 130, 246, 0.08);
-  color: var(--text);
-  width: fit-content;
+  .selected-meta {
+    align-items: flex-start;
+  }
 }
