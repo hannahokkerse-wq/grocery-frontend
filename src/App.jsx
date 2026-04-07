@@ -23,7 +23,6 @@ export default function App() {
   const [products, setProducts] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [basketResult, setBasketResult] = useState(null);
-  const [aiResult, setAiResult] = useState(null);
   const [budget, setBudget] = useState("");
   const [chatInput, setChatInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,7 +35,6 @@ export default function App() {
 
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [loadingBasket, setLoadingBasket] = useState(false);
-  const [loadingAI, setLoadingAI] = useState(false);
   const [loadingChat, setLoadingChat] = useState(false);
 
   const [chatMessages, setChatMessages] = useState([
@@ -135,7 +133,6 @@ export default function App() {
   function clearBasket() {
     setSelectedIds([]);
     setBasketResult(null);
-    setAiResult(null);
   }
 
   async function optimizeBasket() {
@@ -158,30 +155,6 @@ export default function App() {
       console.error("Fout bij basket optimize:", error);
     } finally {
       setLoadingBasket(false);
-    }
-  }
-
-  async function getAiTips() {
-    try {
-      setLoadingAI(true);
-      const res = await fetch(`${API_BASE}/ai/recommend`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          product_ids: selectedIds,
-          budget: budget ? Number(budget) : null,
-          location: "Amsterdam",
-        }),
-      });
-
-      const data = await res.json();
-      setAiResult(data);
-    } catch (error) {
-      console.error("Fout bij AI tips:", error);
-    } finally {
-      setLoadingAI(false);
     }
   }
 
@@ -210,14 +183,7 @@ export default function App() {
 
       const data = await res.json();
 
-      let replyText = "";
-      if (data.reply) {
-        replyText = data.reply;
-      } else if (data.fallback && Array.isArray(data.fallback)) {
-        replyText = data.fallback.join("\n");
-      } else {
-        replyText = "Geen antwoord ontvangen.";
-      }
+      const replyText = data.reply || "Geen antwoord ontvangen.";
 
       setChatMessages((prev) => [
         ...prev,
@@ -340,11 +306,11 @@ export default function App() {
     return STORE_META[storeId]?.label || storeId;
   }
 
-  const budgetStatus = aiResult?.budgetStatus;
   const selectedLowestTotal = selectedProducts.reduce(
     (sum, p) => sum + (getLowestPrice(p) || 0),
     0
   );
+
   const possibleSavings = basketResult?.basket?.savingsVsSingleStore || 0;
   const savingsPercent =
     basketResult?.basket?.singleStoreBest?.total > 0
@@ -585,14 +551,6 @@ export default function App() {
               {loadingBasket ? "Bezig..." : "Optimize Basket"}
             </button>
 
-            <button
-              className="secondary-btn"
-              onClick={getAiTips}
-              disabled={!selectedIds.length || loadingAI}
-            >
-              {loadingAI ? "Bezig..." : "Get AI Savings Tips"}
-            </button>
-
             <button className="ghost-btn" onClick={saveBasketLocal}>
               Save Basket
             </button>
@@ -731,45 +689,12 @@ export default function App() {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
 
-          {aiResult && (
-            <div className="result-card">
-              <h3>AI Savings Advice</h3>
-
-              {budgetStatus && (
-                <div
-                  className={`budget-status ${
-                    budgetStatus.withinBudget ? "good" : "bad"
-                  }`}
-                >
-                  {budgetStatus.withinBudget ? (
-                    <>
-                      ✅ Binnen budget — verschil:{" "}
-                      <strong>{formatEuro(budgetStatus.difference)}</strong>
-                    </>
-                  ) : (
-                    <>
-                      ⚠️ Over budget — verschil:{" "}
-                      <strong>
-                        {formatEuro(Math.abs(budgetStatus.difference))}
-                      </strong>
-                    </>
-                  )}
+              {possibleSavings > 0 && (
+                <div className="mini-insight">
+                  Mogelijke besparing: <strong>{formatEuro(possibleSavings)}</strong>
                 </div>
               )}
-
-              <ul className="ai-list">
-                {(aiResult.insights || []).map((tip, index) => (
-                  <li key={index}>{tip}</li>
-                ))}
-              </ul>
-
-              <div className="mini-insight">
-                Mogelijke besparing nu:{" "}
-                <strong>{formatEuro(possibleSavings)}</strong>
-              </div>
             </div>
           )}
 
