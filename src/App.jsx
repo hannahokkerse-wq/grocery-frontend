@@ -182,7 +182,6 @@ export default function App() {
       });
 
       const data = await res.json();
-
       const replyText = data.reply || "Geen antwoord ontvangen.";
 
       setChatMessages((prev) => [
