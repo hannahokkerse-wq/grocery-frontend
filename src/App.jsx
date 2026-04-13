@@ -18,8 +18,16 @@ const STORE_META = {
 
 const FAVORITES_KEY = "grocery-favorites";
 const SAVED_BASKET_KEY = "grocery-saved-basket";
+const AUTH_KEY = "grocery-auth";
+const APP_PASSWORD = "grocery2026";
 
 export default function App() {
+  const [authorized, setAuthorized] = useState(
+    localStorage.getItem(AUTH_KEY) === "ok"
+  );
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+
   const [products, setProducts] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [basketResult, setBasketResult] = useState(null);
@@ -41,13 +49,15 @@ export default function App() {
     {
       role: "assistant",
       content:
-        "Hoi 👋 Ik ben je Grocery Discount AI. Ik help je besparen, maar ook slim kiezen op kwaliteit.",
+        "Hoi 👋 Ik ben je Grocery Discount AI. Ik help je besparen en slim kiezen op prijs, kwaliteit en winkel.",
     },
   ]);
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    if (authorized) {
+      fetchProducts();
+    }
+  }, [authorized]);
 
   useEffect(() => {
     document.body.classList.toggle("dark-mode", darkMode);
@@ -64,6 +74,24 @@ export default function App() {
       setFavorites([]);
     }
   }, []);
+
+  function handleLogin() {
+    if (password === APP_PASSWORD) {
+      localStorage.setItem(AUTH_KEY, "ok");
+      setAuthorized(true);
+      setLoginError("");
+      return;
+    }
+
+    setLoginError("Onjuist wachtwoord.");
+  }
+
+  function handleLogout() {
+    localStorage.removeItem(AUTH_KEY);
+    setAuthorized(false);
+    setPassword("");
+    setLoginError("");
+  }
 
   async function fetchProducts(query = "") {
     try {
@@ -136,6 +164,8 @@ export default function App() {
   }
 
   async function optimizeBasket() {
+    if (!selectedIds.length) return;
+
     try {
       setLoadingBasket(true);
       const res = await fetch(`${API_BASE}/basket/optimize`, {
@@ -203,7 +233,7 @@ export default function App() {
   }
 
   const categories = useMemo(() => {
-    const unique = [...new Set(products.map((p) => p.category))];
+    const unique = [...new Set(products.map((p) => p.category).filter(Boolean))];
     return ["Alle", ...unique];
   }, [products]);
 
@@ -214,9 +244,10 @@ export default function App() {
   const filteredProducts = useMemo(() => {
     let filtered = products.filter((product) => {
       const q = searchQuery.toLowerCase();
+
       const matchesQuery =
-        product.name.toLowerCase().includes(q) ||
-        product.category.toLowerCase().includes(q) ||
+        product.name?.toLowerCase().includes(q) ||
+        product.category?.toLowerCase().includes(q) ||
         (product.tags || []).some((tag) => tag.toLowerCase().includes(q)) ||
         (product.reviewLabel || "").toLowerCase().includes(q) ||
         (product.brandType || "").toLowerCase().includes(q);
@@ -323,17 +354,54 @@ export default function App() {
         )
       : 0;
 
+  if (!authorized) {
+    return (
+      <div className="auth-screen">
+        <div className="auth-card">
+          <div className="hero-badge">🔒 Private preview</div>
+          <h1>Grocery Discount AI</h1>
+          <p>
+            Deze preview is tijdelijk afgeschermd. Voer het wachtwoord in om de
+            app te bekijken.
+          </p>
+
+          <input
+            type="password"
+            className="auth-input"
+            placeholder="Wachtwoord"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleLogin();
+            }}
+          />
+
+          {loginError && <div className="auth-error">{loginError}</div>}
+
+          <button className="auth-button" onClick={handleLogin}>
+            Inloggen
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <header className="hero">
         <div className="hero-topbar">
           <div className="hero-badge">🛒 Smart Grocery Savings + Quality</div>
-          <button
-            className="mode-toggle"
-            onClick={() => setDarkMode((prev) => !prev)}
-          >
-            {darkMode ? "☀️ Light" : "🌙 Dark"}
-          </button>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <button
+              className="mode-toggle"
+              onClick={() => setDarkMode((prev) => !prev)}
+            >
+              {darkMode ? "☀️ Light" : "🌙 Dark"}
+            </button>
+            <button className="mode-toggle" onClick={handleLogout}>
+              Uitloggen
+            </button>
+          </div>
         </div>
 
         <h1>Grocery Discount AI</h1>
