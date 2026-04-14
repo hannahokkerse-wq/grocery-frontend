@@ -188,50 +188,6 @@ export default function App() {
     }
   }
 
-  async function sendChat() {
-    if (!chatInput.trim()) return;
-
-    const userMessage = { role: "user", content: chatInput };
-    setChatMessages((prev) => [...prev, userMessage]);
-    const currentInput = chatInput;
-    setChatInput("");
-
-    try {
-      setLoadingChat(true);
-
-      const res = await fetch(`${API_BASE}/ai/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          session_id: "frontend-session",
-          message: currentInput,
-          product_ids: selectedIds,
-        }),
-      });
-
-      const data = await res.json();
-      const replyText = data.reply || "Geen antwoord ontvangen.";
-
-      setChatMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: replyText },
-      ]);
-    } catch (error) {
-      console.error("Fout bij AI chat:", error);
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Er ging iets mis met de chat. Probeer opnieuw.",
-        },
-      ]);
-    } finally {
-      setLoadingChat(false);
-    }
-  }
-
   const categories = useMemo(() => {
     const unique = [...new Set(products.map((p) => p.category).filter(Boolean))];
     return ["Alle", ...unique];
@@ -283,6 +239,59 @@ export default function App() {
 
     return filtered;
   }, [products, searchQuery, activeStore, activeCategory, sortMode, favorites]);
+
+  const visibleProductIds = useMemo(() => {
+    return filteredProducts.map((product) => product.id);
+  }, [filteredProducts]);
+
+  async function sendChat() {
+    if (!chatInput.trim()) return;
+
+    const userMessage = { role: "user", content: chatInput };
+    setChatMessages((prev) => [...prev, userMessage]);
+    const currentInput = chatInput;
+    setChatInput("");
+
+    try {
+      setLoadingChat(true);
+
+      const res = await fetch(`${API_BASE}/ai/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          session_id: "frontend-session",
+          message: currentInput,
+          product_ids: selectedIds,
+          visible_product_ids: visibleProductIds,
+          active_store: activeStore,
+          active_category: activeCategory,
+          sort_mode: sortMode,
+          search_query: searchQuery,
+        }),
+      });
+
+      const data = await res.json();
+      const replyText = data.reply || "Geen antwoord ontvangen.";
+
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: replyText },
+      ]);
+    } catch (error) {
+      console.error("Fout bij AI chat:", error);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Er ging iets mis met de chat. Probeer opnieuw.",
+        },
+      ]);
+    } finally {
+      setLoadingChat(false);
+    }
+  }
 
   function getLowestPrice(product) {
     if (!product.prices) return 0;
